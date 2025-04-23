@@ -84,7 +84,27 @@ class ModelEvaluator:
                     pbar.update(metrics_step)
                     logger.debug(f"Metric {metric}: {results[metric]:.4f}")
                 
-                logger.info(f"Evaluation complete. Results: {', '.join([f'{k}={v:.4f}' for k, v in results.items()])}")
+                # Include model metadata in results if available, but keep it separate
+                # from other metrics to avoid formatting issues
+                if hasattr(model, 'get_metadata') and callable(model.get_metadata):
+                    metadata = model.get_metadata()
+                    # Store metadata separately to avoid including it in formatted output
+                    results['metadata'] = metadata
+                    
+                    # Add evaluation sample size to metadata
+                    if hasattr(model, 'update_metadata') and callable(model.update_metadata):
+                        model.update_metadata('evaluation_sample_size', X.shape[0])
+                    
+                    # Update the model's performance history if possible
+                    if hasattr(model, 'update_performance_history') and callable(model.update_performance_history):
+                        # Create a copy of results without the metadata to avoid circular reference
+                        metrics_only = {k: v for k, v in results.items() if k != 'metadata'}
+                        model.update_performance_history(metrics_only)
+                
+                # Log only the numerical metrics, not the metadata
+                metric_log_str = ', '.join([f'{k}={v:.4f}' for k, v in results.items() if k != 'metadata' and isinstance(v, (int, float))])
+                logger.info(f"Evaluation complete. Results: {metric_log_str}")
+                
                 return results
                 
             except Exception as e:
@@ -171,7 +191,22 @@ class ModelEvaluator:
                     # Continue with other metrics
                     continue
         
-        logger.info(f"Cross-validation complete. Results: {', '.join([f'{k}={v:.4f}' for k, v in results.items()])}")
+        # Include model metadata for cross-validation 
+        if hasattr(model, 'get_metadata') and callable(model.get_metadata):
+            metadata = model.get_metadata()
+            # Add cross-validation specific information
+            cv_metadata = {
+                'cv_folds': cv,
+                'cv_sample_size': X.shape[0],
+                'cv_features': X.shape[1]
+            }
+            metadata.update(cv_metadata)
+            results['metadata'] = metadata
+        
+        # Log only the numerical metrics, not the metadata
+        metric_log_str = ', '.join([f'{k}={v:.4f}' for k, v in results.items() if k != 'metadata' and isinstance(v, (int, float))])
+        logger.info(f"Cross-validation complete. Results: {metric_log_str}")
+        
         return results
     
     @staticmethod
@@ -284,3 +319,96 @@ class ModelEvaluator:
         result = mapping.get(metric, metric)
         logger.debug(f"Converted metric '{metric}' to scoring parameter '{result}'")
         return result
+        
+    def get_model_performance_comparison(self, models_results: Dict[str, Dict[str, float]]) -> Dict[str, Any]:
+        """
+        Compare performance across multiple models.
+        
+        Args:
+            models_results: Dictionary mapping model names to their evaluation results
+            
+        Returns:
+            Dictionary containing performance comparison metrics and metadata
+        """
+        logger.info(f"Comparing performance of {len(models_results)} models")
+        
+        comparison = {}
+        common_metrics = set()
+        models_metadata = {}
+        
+        # Find common metrics across all models
+        for model_name, results in models_results.items():
+            metrics_set = {k for k in results.keys() if k != 'metadata'}
+            if not common_metrics:
+                common_metrics = metrics_set
+            else:
+                common_metrics = common_metrics.intersection(metrics_set)
+            
+            # Extract metadata if available
+            if 'metadata' in results:
+                models_metadata[model_name] = results['metadata']
+        
+        logger.debug(f"Common metrics for comparison: {common_metrics}")
+        
+        # Compare each common metric
+        for metric in common_metrics:
+            metric_values = {model_name: results[metric] 
+                             for model_name, results in models_results.items()}
+            
+            # Find best model for this metric
+            if metric in ["rmse", "mse", "mae"]:  # Lower is better
+                best_model = min(metric_values.items(), key=lambda x: x[1])[0]
+            else:  # Higher is better
+                best_model = max(metric_values.items(), key=lambda x: x[1])[0]
+            
+            comparison[metric] = {
+                'values': metric_values,
+                'best_model': best_model,
+                'best_value': metric_values[best_model]
+            }
+        
+        # Add metadata comparison if available
+        if models_metadata:
+            # Analyze training parameters
+            training_params = {
+                model_name: {
+                    'training_time': metadata.get('training_time'),
+                    'n_samples_trained': metadata.get('n_samples_trained'),
+                    'epochs': metadata.get('epochs'),
+                    'iterations': metadata.get('iterations')
+                } for model_name, metadata in models_metadata.items()
+            }
+            
+            comparison['metadata_comparison'] = {
+                'training_parameters': training_params
+            }
+            
+            # Identify potential improvements by analyzing metadata
+            model_improvement_suggestions = {}
+            for model_name, metadata in models_metadata.items():
+                suggestions = []
+                
+                # Check for potential improvements based on training data and parameters
+                if metadata.get('epochs') is not None and metadata.get('epochs') < 100:
+                    suggestions.append("Consider increasing number of epochs for better convergence")
+                
+                if metadata.get('n_samples_trained') is not None and metadata.get('n_samples_trained') < 1000:
+                    suggestions.append("Consider collecting more training data")
+                
+                # Add model-specific suggestions
+                model_type = metadata.get('model_type')
+                if model_type == 'random_forest' and metadata.get('hyperparameters', {}).get('n_estimators', 0) < 100:
+                    suggestions.append("Consider increasing n_estimators for Random Forest")
+                
+                if model_type == 'xgboost':
+                    if 'max_depth' not in metadata.get('hyperparameters', {}):
+                        suggestions.append("Consider tuning max_depth parameter for XGBoost")
+                    
+                if suggestions:
+                    model_improvement_suggestions[model_name] = suggestions
+            
+            if model_improvement_suggestions:
+                comparison['improvement_suggestions'] = model_improvement_suggestions
+        
+        logger.info("Performance comparison complete")
+        return comparison

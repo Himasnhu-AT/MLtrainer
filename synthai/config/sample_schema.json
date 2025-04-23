@@ -53,6 +53,23 @@
     "metadata": {
         "description": "Customer subscription prediction model",
         "version": "1.0.0",
-        "author": "SynthAI Team"
+        "author": "SynthAI Team",
+        "task_type": "classification"
+    },
+    "model_tracking": {
+        "enable_metadata": true,
+        "track_performance_history": true,
+        "track_training_metrics": true,
+        "required_metadata": [
+            "training_time",
+            "epochs",
+            "n_samples_trained",
+            "n_features"
+        ],
+        "experiment_tracking": {
+            "enable": true,
+            "tracking_server": null,
+            "experiment_name": "default_experiment"
+        }
     }
 }

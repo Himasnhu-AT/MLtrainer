@@ -51,9 +51,26 @@
     "type": "continuous"
   },
   "metadata": {
-    "description": "House price prediction dataset",
-    "task_type": "regression",
+    "description": "House price prediction model",
+    "version": "1.0",
     "author": "SynthAI",
-    "created_date": "2025-04-23"
+    "task_type": "regression"
+  },
+  "model_tracking": {
+    "enable_metadata": true,
+    "track_performance_history": true,
+    "track_training_metrics": true,
+    "required_metadata": [
+      "training_time",
+      "iterations",
+      "n_samples_trained",
+      "n_features",
+      "feature_importances"
+    ],
+    "experiment_tracking": {
+      "enable": true,
+      "tracking_server": null,
+      "experiment_name": "house_price_prediction"
+    }
   }
 }

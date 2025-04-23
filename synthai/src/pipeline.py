@@ -275,8 +275,21 @@ def train_model_iteration(
             if logger is not None and logger.isEnabledFor(logging.DEBUG):
                 logger.debug(f"Model evaluation completed in {(time.time() - evaluation_start) * 1000:.2f}ms")
             
+            # Modified part: Separate metadata from normal metrics when logging
+            metadata = None
+            if 'metadata' in evaluation_results:
+                metadata = evaluation_results.pop('metadata')
+            
+            # Log each metric value with proper formatting (only for numeric values)
             for metric, value in evaluation_results.items():
-                logger.info(f"Iteration {iteration+1} - {metric}: {value:.4f}")
+                if isinstance(value, (int, float)):
+                    logger.info(f"Iteration {iteration+1} - {metric}: {value:.4f}")
+                else:
+                    logger.info(f"Iteration {iteration+1} - {metric}: {value}")
+            
+            # Add metadata back to evaluation_results for return value if it was present
+            if metadata is not None:
+                evaluation_results['metadata'] = metadata
                 
             # Log detailed model evaluation if in debug mode
             if logger is not None and logger.isEnabledFor(logging.DEBUG) and hasattr(evaluator, 'get_detailed_metrics'):

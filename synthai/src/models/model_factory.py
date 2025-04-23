@@ -28,6 +28,19 @@ class BaseModel:
         """
         self.params = params or {}
         self.model = None
+        # Initialize metadata dictionary to track training information
+        self.metadata = {
+            'training_time': None,
+            'training_date': None,
+            'epochs': None,
+            'iterations': None,
+            'n_samples_trained': None,
+            'n_features': None,
+            'model_type': None,
+            'task_type': None,
+            'performance_history': [],
+            'hyperparameters': self.params.copy()
+        }
         logger.debug(f"Initialized {self.__class__.__name__} with params: {self.params}")
     
     def fit(self, X: np.ndarray, y: np.ndarray) -> None:
@@ -66,6 +79,49 @@ class BaseModel:
                 pbar.set_description(f"Error: {str(e)}")
                 raise
     
+    def update_metadata(self, key: str, value: Any) -> None:
+        """
+        Update model metadata with new information.
+        
+        Args:
+            key: Metadata key to update
+            value: New value for the metadata
+        """
+        self.metadata[key] = value
+        logger.debug(f"Updated metadata: {key}={value}")
+    
+    def update_performance_history(self, metrics: Dict[str, float], epoch: int = None, iteration: int = None) -> None:
+        """
+        Add performance metrics to the model's performance history.
+        
+        Args:
+            metrics: Dictionary of metric names to values
+            epoch: Current epoch number (optional)
+            iteration: Current iteration number (optional)
+        """
+        entry = {
+            'metrics': metrics,
+            'timestamp': time.time()
+        }
+        
+        if epoch is not None:
+            entry['epoch'] = epoch
+        
+        if iteration is not None:
+            entry['iteration'] = iteration
+            
+        self.metadata['performance_history'].append(entry)
+        logger.debug(f"Added performance metrics to history: {metrics}")
+    
+    def get_metadata(self) -> Dict[str, Any]:
+        """
+        Get the model's metadata.
+        
+        Returns:
+            Dictionary of model metadata
+        """
+        return self.metadata
+    
     @log_execution_time(logger)
     def save(self, path: str) -> None:
         """
@@ -80,8 +136,13 @@ class BaseModel:
         
         logger.info(f"Saving model to {path}")
         with tqdm(total=1, desc="Saving model", unit="file") as pbar:
+            # Save both the model and metadata
+            model_data = {
+                'model': self.model,
+                'metadata': self.metadata
+            }
             with open(path, 'wb') as f:
-                pickle.dump(self.model, f)
+                pickle.dump(model_data, f)
             pbar.update(1)
         logger.info(f"Model saved successfully to {path}")
     
@@ -100,11 +161,22 @@ class BaseModel:
         logger.info(f"Loading model from {path}")
         with tqdm(total=1, desc="Loading model", unit="file") as pbar:
             with open(path, 'rb') as f:
-                model = pickle.load(f)
+                data = pickle.load(f)
             pbar.update(1)
         
         instance = cls()
-        instance.model = model
+        
+        # Handle both new and old format model files
+        if isinstance(data, dict) and 'model' in data and 'metadata' in data:
+            # New format with metadata
+            instance.model = data['model']
+            instance.metadata = data['metadata']
+            logger.debug("Loaded model with metadata")
+        else:
+            # Old format, just the model
+            instance.model = data
+            logger.debug("Loaded model without metadata (old format)")
+        
         logger.info(f"Model loaded successfully from {path}")
         
         return instance
@@ -138,15 +210,35 @@ class ClassificationModel(BaseModel):
                 logger.error(f"Unsupported classification model type: {model_type}")
                 raise ValueError(f"Unsupported classification model type: {model_type}")
             
+            # Update metadata with model type and task information
+            self.update_metadata('model_type', model_type)
+            self.update_metadata('task_type', 'classification')
+            
             logger.debug(f"Model initialized with parameters: {self.params}")
         except Exception as e:
             logger.error(f"Error initializing model: {str(e)}")
             raise
     
     @log_execution_time(logger)
-    def fit(self, X: np.ndarray, y: np.ndarray) -> None:
-        """Train the classification model."""
+    def fit(self, X: np.ndarray, y: np.ndarray, epochs: int = None, callbacks: List = None) -> None:
+        """
+        Train the classification model.
+        
+        Args:
+            X: Feature matrix
+            y: Target vector
+            epochs: Number of training epochs (for iterative models like XGBoost)
+            callbacks: List of callbacks for training (model-specific)
+        """
         logger.info(f"Training {self.model_type} classifier on {X.shape[0]} samples with {X.shape[1]} features")
+        
+        # Update metadata before training
+        self.update_metadata('n_samples_trained', X.shape[0])
+        self.update_metadata('n_features', X.shape[1])
+        self.update_metadata('training_date', time.strftime("%Y-%m-%d %H:%M:%S"))
+        
+        if epochs is not None:
+            self.update_metadata('epochs', epochs)
         
         with tqdm(total=100, desc=f"Training {self.model_type}", unit="%", ncols=100) as pbar:
             # Training steps visualization
@@ -155,66 +247,59 @@ class ClassificationModel(BaseModel):
             
             try:
                 if self.model_type == "xgboost":
-                    # For XGBoost, simply fit the model without callbacks
-                    # as some versions might not support the callbacks parameter
+                    # For XGBoost, we can track epochs
                     pbar.set_description(f"Training {self.model_type}")
-                    self.model.fit(X, y)
+                    
+                    # If epochs were specified and not already in model params
+                    if epochs is not None and 'n_estimators' not in self.params:
+                        self.model.n_estimators = epochs
+                        
+                    # Setup XGBoost-specific parameters
+                    fit_params = {}
+                    if callbacks:
+                        fit_params['callbacks'] = callbacks
+                    
+                    # Store the number of actual epochs/estimators in metadata
+                    self.update_metadata('epochs', self.model.n_estimators)
+                    
+                    self.model.fit(X, y, **fit_params)
                     pbar.update(95)  # Complete training
                 else:
                     # For other models, just show a simple progress bar
                     self.model.fit(X, y)
+                    
+                    # Some models have iterations or similar concepts
+                    if hasattr(self.model, 'n_iter_'):
+                        self.update_metadata('iterations', self.model.n_iter_)
+                    elif hasattr(self.model, 'n_estimators'):
+                        self.update_metadata('iterations', self.model.n_estimators)
+                        
                     pbar.update(95)  # Complete main training
                 
                 training_time = time.time() - start_time
                 logger.info(f"Model training completed in {training_time:.2f} seconds")
                 
+                # Update metadata after training
+                self.update_metadata('training_time', training_time)
+                
                 # Log model info if available
                 if hasattr(self.model, 'n_features_in_'):
                     logger.debug(f"Model trained on {self.model.n_features_in_} features")
+                    self.update_metadata('n_features', self.model.n_features_in_)
                 
                 if hasattr(self.model, 'classes_'):
                     logger.debug(f"Model classes: {self.model.classes_}")
+                    self.update_metadata('classes', self.model.classes_.tolist())
                 
                 if hasattr(self.model, 'feature_importances_'):
                     top5_indices = np.argsort(self.model.feature_importances_)[-5:]
                     logger.debug(f"Top 5 feature importance indices: {top5_indices}")
+                    self.update_metadata('feature_importances', self.model.feature_importances_.tolist())
                 
             except Exception as e:
                 logger.error(f"Error during model training: {str(e)}")
                 pbar.set_description(f"Error: {str(e)}")
                 raise
-    
-    def predict_proba(self, X: np.ndarray) -> np.ndarray:
-        """
-        Get probability estimates for each class.
-        
-        Args:
-            X: Feature matrix
-            
-        Returns:
-            Array of class probabilities
-        """
-        if self.model is None:
-            logger.error("Model has not been trained yet")
-            raise ValueError("Model has not been trained yet")
-        
-        logger.debug(f"Getting probability estimates for {X.shape[0]} samples")
-        with tqdm(total=100, desc="Predicting probabilities", unit="%", ncols=100) as pbar:
-            pbar.update(10)  # Starting
-            if hasattr(self.model, 'predict_proba'):
-                try:
-                    probs = self.model.predict_proba(X)
-                    pbar.update(90)  # Complete
-                    return probs
-                except Exception as e:
-                    logger.error(f"Error during probability prediction: {str(e)}")
-                    pbar.set_description(f"Error: {str(e)}")
-                    raise
-            else:
-                # For models that don't support predict_proba directly
-                logger.error(f"predict_proba not supported for {self.model_type}")
-                pbar.set_description("Not supported")
-                raise NotImplementedError(f"predict_proba not supported for {self.model_type}")
 
 
 class RegressionModel(BaseModel):
@@ -245,15 +330,35 @@ class RegressionModel(BaseModel):
                 logger.error(f"Unsupported regression model type: {model_type}")
                 raise ValueError(f"Unsupported regression model type: {model_type}")
             
+            # Update metadata with model type and task information
+            self.update_metadata('model_type', model_type)
+            self.update_metadata('task_type', 'regression')
+            
             logger.debug(f"Model initialized with parameters: {self.params}")
         except Exception as e:
             logger.error(f"Error initializing model: {str(e)}")
             raise
     
     @log_execution_time(logger)
-    def fit(self, X: np.ndarray, y: np.ndarray) -> None:
-        """Train the regression model."""
+    def fit(self, X: np.ndarray, y: np.ndarray, epochs: int = None, callbacks: List = None) -> None:
+        """
+        Train the regression model.
+        
+        Args:
+            X: Feature matrix
+            y: Target vector
+            epochs: Number of training epochs (for iterative models like XGBoost)
+            callbacks: List of callbacks for training (model-specific)
+        """
         logger.info(f"Training {self.model_type} regressor on {X.shape[0]} samples with {X.shape[1]} features")
+        
+        # Update metadata before training
+        self.update_metadata('n_samples_trained', X.shape[0])
+        self.update_metadata('n_features', X.shape[1])
+        self.update_metadata('training_date', time.strftime("%Y-%m-%d %H:%M:%S"))
+        
+        if epochs is not None:
+            self.update_metadata('epochs', epochs)
         
         with tqdm(total=100, desc=f"Training {self.model_type}", unit="%", ncols=100) as pbar:
             # Training steps visualization
@@ -262,26 +367,50 @@ class RegressionModel(BaseModel):
             
             try:
                 if self.model_type == "xgboost":
-                    # For XGBoost, simply fit the model without callbacks
-                    # as some versions might not support the callbacks parameter
+                    # For XGBoost, we can track epochs
                     pbar.set_description(f"Training {self.model_type}")
-                    self.model.fit(X, y)
+                    
+                    # If epochs were specified and not already in model params
+                    if epochs is not None and 'n_estimators' not in self.params:
+                        self.model.n_estimators = epochs
+                    
+                    # Setup XGBoost-specific parameters
+                    fit_params = {}
+                    if callbacks:
+                        fit_params['callbacks'] = callbacks
+                    
+                    # Store the number of actual epochs/estimators in metadata
+                    self.update_metadata('epochs', self.model.n_estimators)
+                    
+                    self.model.fit(X, y, **fit_params)
                     pbar.update(95)  # Complete training
                 else:
                     # For other models, just show a simple progress bar
                     self.model.fit(X, y)
+                    
+                    # Some models have iterations or similar concepts
+                    if hasattr(self.model, 'n_iter_'):
+                        self.update_metadata('iterations', self.model.n_iter_)
+                    elif hasattr(self.model, 'n_estimators'):
+                        self.update_metadata('iterations', self.model.n_estimators)
+                    
                     pbar.update(95)  # Complete main training
                 
                 training_time = time.time() - start_time
                 logger.info(f"Model training completed in {training_time:.2f} seconds")
                 
+                # Update metadata after training
+                self.update_metadata('training_time', training_time)
+                
                 # Log model info if available
                 if hasattr(self.model, 'n_features_in_'):
                     logger.debug(f"Model trained on {self.model.n_features_in_} features")
+                    self.update_metadata('n_features', self.model.n_features_in_)
                 
                 if hasattr(self.model, 'feature_importances_'):
                     top5_indices = np.argsort(self.model.feature_importances_)[-5:]
                     logger.debug(f"Top 5 feature importance indices: {top5_indices}")
+                    self.update_metadata('feature_importances', self.model.feature_importances_.tolist())
                 
             except Exception as e:
                 logger.error(f"Error during model training: {str(e)}")

@@ -29,11 +29,14 @@ DEFAULT_OUTPUT_DIR="synthai/models"
 # Use simple string-based approach instead of associative arrays for wider shell compatibility
 CHURN_MODELS="random_forest logistic_regression xgboost"
 PROMOTION_MODELS="random_forest logistic_regression xgboost"
-HOUSES_MODELS="random_forest linear_regression"
+HOUSES_MODELS="random_forest linear_regression xgboost"
 REVIEWS_MODELS="random_forest logistic_regression xgboost"
 
 # PnC mode flag (run all datasets with all models)
 PNC_MODE=false
+
+# Metadata tracking flag (enabled by default with new schema updates)
+METADATA_TRACKING=true
 
 # Check if any arguments were provided
 if [ $# -gt 0 ]; then
@@ -66,17 +69,22 @@ if [ $# -gt 0 ]; then
                 RUN_ALL=true
                 shift 1
                 ;;
+            --no-metadata)
+                METADATA_TRACKING=false
+                shift 1
+                ;;
             --help)
-                echo -e "${BLUE}Usage: ./run_example.sh [--example <example_name>] [--model <model_type>] [--output <output_dir>] [--all] [--pnc]${NC}"
+                echo -e "${BLUE}Usage: ./run_example.sh [--example <example_name>] [--model <model_type>] [--output <output_dir>] [--all] [--pnc] [--no-metadata]${NC}"
                 echo ""
                 echo -e "${BLUE}Options:${NC}"
-                echo "  --example  Name of example to run"
-                echo "             Available examples: churn, promotion, houses, reviews"
-                echo "  --model    Type of model to train"
-                echo "             Available models: random_forest, logistic_regression, xgboost, linear_regression"
-                echo "  --output   Directory to save model (default: synthai/models)"
-                echo "  --all      Run all available examples with the specified model"
-                echo "  --pnc      Run all compatible example-model combinations"
+                echo "  --example     Name of example to run"
+                echo "               Available examples: churn, promotion, houses, reviews"
+                echo "  --model       Type of model to train"
+                echo "               Available models: random_forest, logistic_regression, xgboost, linear_regression"
+                echo "  --output      Directory to save model (default: synthai/models)"
+                echo "  --all         Run all available examples with the specified model"
+                echo "  --pnc         Run all compatible example-model combinations"
+                echo "  --no-metadata Disable model metadata tracking (not recommended)"
                 echo ""
                 echo -e "${BLUE}Error Codes:${NC}"
                 echo "  1 - Invalid argument or option"
@@ -89,7 +97,7 @@ if [ $# -gt 0 ]; then
                 ;;
             *)
                 echo -e "${RED}Unknown option: $1${NC}"
-                echo "Usage: ./run_example.sh [--example <example_name>] [--model <model_type>] [--output <output_dir>] [--all] [--pnc]"
+                echo "Usage: ./run_example.sh [--example <example_name>] [--model <model_type>] [--output <output_dir>] [--all] [--pnc] [--no-metadata]"
                 echo "Use --help for more information."
                 exit 1
                 ;;
@@ -176,6 +184,20 @@ else
         OUTPUT_DIR="$DEFAULT_OUTPUT_DIR"
     else
         OUTPUT_DIR="$OUTPUT_DIR_CHOICE"
+    fi
+    
+    # Ask about metadata tracking
+    echo ""
+    echo -e "${CYAN}Enable model metadata tracking for enhanced performance analysis? (Y/n):${NC}"
+    read METADATA_CHOICE
+    
+    # Process the user's choice
+    if [[ "$METADATA_CHOICE" == "n" || "$METADATA_CHOICE" == "N" ]]; then
+        METADATA_TRACKING=false
+        echo -e "${YELLOW}Model metadata tracking disabled.${NC}"
+    else
+        METADATA_TRACKING=true
+        echo -e "${GREEN}Model metadata tracking enabled.${NC}"
     fi
 fi
 
@@ -280,17 +302,39 @@ run_example() {
         return 4
     fi
     
-    # Update schema files to include task_type if not already present
-    # This is a temporary fix for schemas that don't have task_type specified
-    if ! grep -q "task_type" "$SCHEMA_PATH"; then
-        echo -e "${YELLOW}Adding missing task_type to schema: $TASK_TYPE${NC}"
+    # Configure metadata tracking in the schema if needed
+    if [ "$METADATA_TRACKING" = false ]; then
+        echo -e "${YELLOW}Disabling metadata tracking in schema${NC}"
         # Create a temporary file
         TMP_FILE="$(mktemp)"
-        # Insert task_type into the metadata section
-        jq --arg task "$TASK_TYPE" '.metadata.task_type = $task' "$SCHEMA_PATH" > "$TMP_FILE"
+        
+        # If model_tracking exists, update it; otherwise add it
+        if jq -e '.model_tracking' "$SCHEMA_PATH" > /dev/null; then
+            # Update existing model_tracking section
+            jq '.model_tracking.enable_metadata = false | .model_tracking.track_performance_history = false' "$SCHEMA_PATH" > "$TMP_FILE"
+        else
+            # Add new model_tracking section with tracking disabled
+            jq '. + {"model_tracking": {"enable_metadata": false, "track_performance_history": false}}' "$SCHEMA_PATH" > "$TMP_FILE"
+        fi
+        
         # Replace the original file
         cat "$TMP_FILE" > "$SCHEMA_PATH"
         rm "$TMP_FILE"
+    else
+        echo -e "${GREEN}Model metadata tracking is enabled${NC}"
+        
+        # Ensure the schema has metadata tracking
+        if ! jq -e '.model_tracking' "$SCHEMA_PATH" > /dev/null; then
+            echo -e "${YELLOW}Adding metadata tracking to schema${NC}"
+            TMP_FILE="$(mktemp)"
+            
+            # Add model_tracking section with defaults
+            jq '. + {"model_tracking": {"enable_metadata": true, "track_performance_history": true, "track_training_metrics": true}}' "$SCHEMA_PATH" > "$TMP_FILE"
+            
+            # Replace the original file
+            cat "$TMP_FILE" > "$SCHEMA_PATH"
+            rm "$TMP_FILE"
+        fi
     fi
     
     # Special case: Handle XGBoost with house prices regression
@@ -298,13 +342,53 @@ run_example() {
         echo -e "${YELLOW}Note: For 'houses' dataset with XGBoost, normalizing target values for better compatibility${NC}"
         # Create a temporary config file with special parameters for XGBoost regression
         XGB_CONFIG_PATH="$(mktemp).json"
-        echo '{
-            "model_params": {
-                "objective": "reg:squarederror",
-                "normalize_target": true
-            }
-        }' > "$XGB_CONFIG_PATH"
+        
+        if [ "$METADATA_TRACKING" = true ]; then
+            echo '{
+                "model_params": {
+                    "objective": "reg:squarederror",
+                    "normalize_target": true
+                },
+                "training_params": {
+                    "epochs": 100,
+                    "early_stopping_rounds": 10,
+                    "save_metadata": true
+                }
+            }' > "$XGB_CONFIG_PATH"
+        else
+            echo '{
+                "model_params": {
+                    "objective": "reg:squarederror",
+                    "normalize_target": true
+                }
+            }' > "$XGB_CONFIG_PATH"
+        fi
+        
         CONFIG_ARG="--config $XGB_CONFIG_PATH"
+    elif [ "$METADATA_TRACKING" = true ]; then
+        # Create a temporary config file with metadata tracking parameters for all models
+        META_CONFIG_PATH="$(mktemp).json"
+        
+        if [ "$model_type" = "xgboost" ]; then
+            # For XGBoost models, include epochs
+            echo '{
+                "training_params": {
+                    "epochs": 100,
+                    "save_metadata": true,
+                    "track_metrics": true
+                }
+            }' > "$META_CONFIG_PATH"
+        else
+            # For other models
+            echo '{
+                "training_params": {
+                    "save_metadata": true,
+                    "track_metrics": true
+                }
+            }' > "$META_CONFIG_PATH"
+        fi
+        
+        CONFIG_ARG="--config $META_CONFIG_PATH"
     else
         CONFIG_ARG=""
     fi
@@ -317,9 +401,10 @@ run_example() {
     echo -e "${BLUE}Data file:   ${NC}${DATA_PATH}"
     echo -e "${BLUE}Schema file: ${NC}${SCHEMA_PATH}"
     echo -e "${BLUE}Output dir:  ${NC}${output_dir}"
+    echo -e "${BLUE}Metadata:    ${NC}$([ "$METADATA_TRACKING" = true ] && echo "Enabled" || echo "Disabled")"
     echo -e "${BLUE}=======================================${NC}"
     
-    # Run the training command
+    # Run the training command - removed the META_ARG which was causing errors
     echo -e "${YELLOW}Starting model training...${NC}"
     if [ -n "$CONFIG_ARG" ]; then
         python -m synthai.cli train "$DATA_PATH" "$SCHEMA_PATH" --model-type "$model_type" --output "$output_dir" $CONFIG_ARG --log-level INFO
@@ -327,13 +412,46 @@ run_example() {
         python -m synthai.cli train "$DATA_PATH" "$SCHEMA_PATH" --model-type "$model_type" --output "$output_dir" --log-level INFO
     fi
     
+    TRAIN_STATUS=$?
+    
     # Clean up temporary files if created
     if [ -n "$CONFIG_ARG" ]; then
-        rm -f "$XGB_CONFIG_PATH"
+        if [ "$example" = "houses" ] && [ "$model_type" = "xgboost" ]; then
+            rm -f "$XGB_CONFIG_PATH"
+        elif [ "$METADATA_TRACKING" = true ]; then
+            rm -f "$META_CONFIG_PATH"
+        fi
+    fi
+    
+    # If training succeeded and metadata is enabled, display model metadata
+    if [ $TRAIN_STATUS -eq 0 ] && [ "$METADATA_TRACKING" = true ]; then
+        echo -e "${YELLOW}Analyzing model metadata...${NC}"
+        
+        # Get the latest model file
+        LATEST_MODEL=$(ls -t "$output_dir"/${model_type}_*.pkl | head -1)
+        
+        if [ -n "$LATEST_MODEL" ]; then
+            # Check if analyze command exists in the CLI
+            if python -m synthai.cli --help | grep -q "analyze"; then
+                # Use CLI to show model metadata if the analyze command exists
+                python -m synthai.cli analyze "$LATEST_MODEL" --show-metadata
+                ANALYZE_STATUS=$?
+                
+                if [ $ANALYZE_STATUS -ne 0 ]; then
+                    echo -e "${YELLOW}Note: Model metadata is tracked but the CLI analyze command failed.${NC}"
+                    echo -e "${YELLOW}Your model still contains metadata for future use.${NC}"
+                fi
+            else
+                echo -e "${YELLOW}Note: Model contains metadata but the CLI analyze command is not available.${NC}"
+                echo -e "${YELLOW}You can access metadata programmatically via the model's get_metadata() method.${NC}"
+            fi
+        else
+            echo -e "${RED}No model file found for analysis.${NC}"
+        fi
     fi
     
     # Check if the command was successful
-    MODEL_TRAIN_STATUS=$?
+    MODEL_TRAIN_STATUS=$TRAIN_STATUS
     if [ $MODEL_TRAIN_STATUS -eq 0 ]; then
         echo -e "${GREEN}Model training completed successfully!${NC}"
         echo -e "${GREEN}Model saved in: $output_dir${NC}"

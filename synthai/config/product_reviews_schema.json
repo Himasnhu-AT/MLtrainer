@@ -21,9 +21,26 @@
     "type": "multiclass"
   },
   "metadata": {
-    "description": "Product review sentiment analysis dataset",
-    "task_type": "classification",
+    "description": "Product review sentiment analysis model",
+    "version": "1.0",
     "author": "SynthAI",
-    "created_date": "2025-04-23"
+    "task_type": "classification"
+  },
+  "model_tracking": {
+    "enable_metadata": true,
+    "track_performance_history": true,
+    "track_training_metrics": true,
+    "required_metadata": [
+      "training_time",
+      "epochs",
+      "n_samples_trained",
+      "n_features",
+      "classes"
+    ],
+    "experiment_tracking": {
+      "enable": true,
+      "tracking_server": null,
+      "experiment_name": "sentiment_analysis"
+    }
   }
 }
