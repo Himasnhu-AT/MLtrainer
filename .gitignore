@@ -9,3 +9,4 @@ synthai.egg-info
 *.sqlite3
 *.db
 *.pkl
+.pytest_cache

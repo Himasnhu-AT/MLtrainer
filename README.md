@@ -36,6 +36,18 @@ synthai/
 
 ## Installation
 
+### Using Bash Scripts (Recommended)
+
+```bash
+# Make the setup script executable
+chmod +x setup.sh
+
+# Run the setup script to create a virtual environment and install dependencies
+./setup.sh
+```
+
+### Manual Installation
+
 ```bash
 # Clone the repository
 git clone https://github.com/yourusername/synthai.git
@@ -50,6 +62,24 @@ pip install -r requirements.txt
 ```
 
 ## Quick Start
+
+### Using Bash Scripts
+
+```bash
+# List available models
+./list_models.sh
+
+# Run the customer churn prediction example with default settings (random forest)
+./run_example.sh
+
+# Run with a specific model type
+./run_example.sh --model xgboost
+
+# See all available options
+./run_example.sh --help
+```
+
+### Manual Execution
 
 1. Define your data schema in a JSON file:
 
@@ -69,7 +99,7 @@ pip install -r requirements.txt
 3. Run the training pipeline:
 
 ```bash
-python -m src.pipeline --data data/raw/your_data.csv --schema config/your_schema.json --model-type "random_forest"
+python -m synthai.cli train --data synthai/data/raw/your_data.csv --schema synthai/config/your_schema.json --model-type "random_forest"
 ```
 
 4. Find your trained model in the `models/` directory
@@ -94,12 +124,52 @@ You can customize the training process through command-line arguments or a confi
 ### Running Tests
 
 ```bash
+# Using the test script (recommended)
+chmod +x run_tests.sh
+
+# Run all tests
+./run_tests.sh
+
+# Run only unit tests
+./run_tests.sh --unit
+
+# Run with coverage report
+./run_tests.sh --coverage
+
+# Run a specific test file
+./run_tests.sh --file synthai/tests/unit/test_schema_validator.py
+```
+
+### Manual Test Execution
+
+```bash
 # Run all tests
 pytest
 
 # Run specific test file
 pytest tests/test_schema_validator.py
 ```
+
+### Cleanup
+
+```bash
+# Clean up generated files, models, and caches
+chmod +x cleanup.sh
+./cleanup.sh
+
+# Force cleanup without confirmation
+./cleanup.sh --force
+```
+
+## Utility Scripts
+
+The following bash scripts are provided to simplify common tasks:
+
+- `setup.sh` - Creates a virtual environment and installs dependencies
+- `run_example.sh` - Runs example model training with configurable options
+- `run_tests.sh` - Runs tests with various options (unit tests, coverage, etc.)
+- `list_models.sh` - Lists available model types in the framework
+- `cleanup.sh` - Removes generated files, models, and cache files
 
 ## License
 
