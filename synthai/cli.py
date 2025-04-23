@@ -39,34 +39,71 @@ def train(
     model_type: str = typer.Option("random_forest", help="Type of model to train"),
     output: str = typer.Option("models", help="Directory for saving the model"),
     config: Optional[str] = typer.Option(None, help="Path to optional configuration file"),
-    log_level: str = typer.Option("INFO", help="Logging level")
+    log_level: str = typer.Option("INFO", help="Logging level (DEBUG, INFO, WARNING, ERROR)"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output (same as --log-level DEBUG)"),
+    iterations: int = typer.Option(1, help="Number of training iterations to run")
 ):
     """
     Train a machine learning model using the specified data and schema.
     """
     try:
+        # Use verbose flag to override log_level if specified
+        if verbose:
+            log_level = "DEBUG"
+        
+        # Set up logger with specified log level
+        global logger
+        logger = setup_logger("synthai_cli", level=log_level)
+        
+        # Log detailed info in debug mode
+        if log_level.upper() == "DEBUG":
+            logger.debug(f"Command line arguments:")
+            logger.debug(f"  data: {data}")
+            logger.debug(f"  schema: {schema}")
+            logger.debug(f"  model_type: {model_type}")
+            logger.debug(f"  output: {output}")
+            logger.debug(f"  config: {config}")
+            logger.debug(f"  log_level: {log_level}")
+            logger.debug(f"  verbose: {verbose}")
+            logger.debug(f"  iterations: {iterations}")
+        
         # Set up arguments for the pipeline
         logger.info(f"Training model with data: {data}, schema: {schema}, model type: {model_type}")
         logger.info(f"Output directory: {output}, log level: {log_level}")
         
-        # Replace sys.argv with our actual arguments
-        sys.argv = [
+        # Instead of modifying sys.argv directly, we'll create a new array with the arguments
+        # and use it when running the pipeline
+        pipeline_args = [
             "pipeline.py",
             "--data", data,
             "--schema", schema,
             "--model-type", model_type,
             "--output", output,
-            "--log-level", log_level
+            "--log-level", log_level,
+            "--iterations", str(iterations)
         ]
         
         if config:
-            sys.argv.extend(["--config", config])
+            pipeline_args.extend(["--config", config])
         
-        # Run the pipeline
-        logger.info("Starting the training pipeline")
-        run_pipeline()
-        logger.info("Training completed successfully")
-        return SUCCESS
+        if verbose:
+            pipeline_args.append("--verbose")
+        
+        # Save original sys.argv
+        original_argv = sys.argv.copy()
+        
+        try:
+            # Replace sys.argv with our actual arguments
+            sys.argv = pipeline_args
+            
+            # Run the pipeline
+            logger.info("Starting the training pipeline")
+            run_pipeline()
+            logger.info("Training completed successfully")
+            return SUCCESS
+        finally:
+            # Restore original sys.argv
+            sys.argv = original_argv
         
     except ValidationError as e:
         logger.error(f"Schema validation error: {e.message}")
@@ -108,10 +145,15 @@ def train(
 @app.command()
 def generate_schema(
     output: str = typer.Argument(..., help="Path to save the schema template"),
+    log_level: str = typer.Option("INFO", help="Logging level")
 ):
     """
     Generate a sample schema template.
     """
+    # Update logger with specified log level
+    global logger
+    logger = setup_logger("synthai_cli", level=log_level)
+    
     try:
         # Generate template schema
         schema = SchemaValidator.generate_schema_template()
@@ -134,10 +176,16 @@ def generate_schema(
         raise typer.Exit(code=ERROR_VALIDATION_FAILED)
 
 @app.command()
-def list_models():
+def list_models(
+    log_level: str = typer.Option("INFO", help="Logging level")
+):
     """
     List available model types.
     """
+    # Update logger with specified log level
+    global logger
+    logger = setup_logger("synthai_cli", level=log_level)
+    
     try:
         models = ModelFactory.list_available_models()
         
@@ -163,11 +211,16 @@ def list_models():
 
 @app.command()
 def validate_schema(
-    schema_path: str = typer.Argument(..., help="Path to the schema file to validate")
+    schema_path: str = typer.Argument(..., help="Path to the schema file to validate"),
+    log_level: str = typer.Option("INFO", help="Logging level")
 ):
     """
     Validate a schema file.
     """
+    # Update logger with specified log level
+    global logger
+    logger = setup_logger("synthai_cli", level=log_level)
+    
     try:
         validator = SchemaValidator(schema_path)
         schema = validator.load_schema()

@@ -322,9 +322,9 @@ run_example() {
     # Run the training command
     echo -e "${YELLOW}Starting model training...${NC}"
     if [ -n "$CONFIG_ARG" ]; then
-        python -m synthai.cli train "$DATA_PATH" "$SCHEMA_PATH" --model-type "$model_type" --output "$output_dir" $CONFIG_ARG
+        python -m synthai.cli train "$DATA_PATH" "$SCHEMA_PATH" --model-type "$model_type" --output "$output_dir" $CONFIG_ARG --log-level INFO
     else
-        python -m synthai.cli train "$DATA_PATH" "$SCHEMA_PATH" --model-type "$model_type" --output "$output_dir"
+        python -m synthai.cli train "$DATA_PATH" "$SCHEMA_PATH" --model-type "$model_type" --output "$output_dir" --log-level INFO
     fi
     
     # Clean up temporary files if created
