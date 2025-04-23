@@ -198,14 +198,17 @@ class ClassificationModel(BaseModel):
         logger.info(f"Initializing {model_type} classification model")
         
         try:
+            # Filter parameters based on model type
+            filtered_params = self._filter_params_for_model(model_type, self.params)
+            
             if model_type == "random_forest":
-                self.model = RandomForestClassifier(**self.params)
+                self.model = RandomForestClassifier(**filtered_params)
             elif model_type == "logistic_regression":
-                self.model = LogisticRegression(**self.params)
+                self.model = LogisticRegression(**filtered_params)
             elif model_type == "svm":
-                self.model = SVC(**self.params)
+                self.model = SVC(**filtered_params)
             elif model_type == "xgboost":
-                self.model = xgb.XGBClassifier(**self.params)
+                self.model = xgb.XGBClassifier(**filtered_params)
             else:
                 logger.error(f"Unsupported classification model type: {model_type}")
                 raise ValueError(f"Unsupported classification model type: {model_type}")
@@ -214,10 +217,54 @@ class ClassificationModel(BaseModel):
             self.update_metadata('model_type', model_type)
             self.update_metadata('task_type', 'classification')
             
-            logger.debug(f"Model initialized with parameters: {self.params}")
+            logger.debug(f"Model initialized with parameters: {filtered_params}")
         except Exception as e:
             logger.error(f"Error initializing model: {str(e)}")
             raise
+    
+    def _filter_params_for_model(self, model_type: str, params: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Filter parameters based on model type to ensure compatibility.
+        
+        Args:
+            model_type: Type of model being created
+            params: Original parameters dictionary
+            
+        Returns:
+            Filtered parameters dictionary
+        """
+        if params is None:
+            return {}
+            
+        filtered_params = params.copy()
+        
+        # Define parameters that are only applicable to specific model types
+        neural_network_params = [
+            "epochs", "batch_size", "learning_rate", "early_stopping",
+            "early_stopping_patience", "validation_split"
+        ]
+        
+        # Remove neural network params from scikit-learn models
+        if model_type in ["random_forest", "logistic_regression", "linear_regression", "svm"]:
+            for param in neural_network_params:
+                if param in filtered_params:
+                    filtered_params.pop(param)
+                    logger.debug(f"Removed parameter '{param}' not applicable to {model_type}")
+        
+        # Handle XGBoost specific parameter mapping
+        if model_type == "xgboost":
+            # Map epochs to n_estimators for XGBoost
+            if "epochs" in filtered_params and "n_estimators" not in filtered_params:
+                filtered_params["n_estimators"] = filtered_params.pop("epochs")
+                logger.debug("Mapped 'epochs' to 'n_estimators' for XGBoost")
+            
+            # Remove parameters not applicable to XGBoost
+            for param in ["batch_size", "early_stopping", "validation_split"]:
+                if param in filtered_params:
+                    filtered_params.pop(param)
+                    logger.debug(f"Removed parameter '{param}' not applicable to XGBoost")
+                
+        return filtered_params
     
     @log_execution_time(logger)
     def fit(self, X: np.ndarray, y: np.ndarray, epochs: int = None, callbacks: List = None) -> None:
@@ -318,14 +365,17 @@ class RegressionModel(BaseModel):
         logger.info(f"Initializing {model_type} regression model")
         
         try:
+            # Filter parameters based on model type
+            filtered_params = self._filter_params_for_model(model_type, self.params)
+            
             if model_type == "random_forest":
-                self.model = RandomForestRegressor(**self.params)
+                self.model = RandomForestRegressor(**filtered_params)
             elif model_type == "linear_regression":
-                self.model = LinearRegression(**self.params)
+                self.model = LinearRegression(**filtered_params)
             elif model_type == "svm":
-                self.model = SVR(**self.params)
+                self.model = SVR(**filtered_params)
             elif model_type == "xgboost":
-                self.model = xgb.XGBRegressor(**self.params)
+                self.model = xgb.XGBRegressor(**filtered_params)
             else:
                 logger.error(f"Unsupported regression model type: {model_type}")
                 raise ValueError(f"Unsupported regression model type: {model_type}")
@@ -334,10 +384,54 @@ class RegressionModel(BaseModel):
             self.update_metadata('model_type', model_type)
             self.update_metadata('task_type', 'regression')
             
-            logger.debug(f"Model initialized with parameters: {self.params}")
+            logger.debug(f"Model initialized with parameters: {filtered_params}")
         except Exception as e:
             logger.error(f"Error initializing model: {str(e)}")
             raise
+    
+    def _filter_params_for_model(self, model_type: str, params: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Filter parameters based on model type to ensure compatibility.
+        
+        Args:
+            model_type: Type of model being created
+            params: Original parameters dictionary
+            
+        Returns:
+            Filtered parameters dictionary
+        """
+        if params is None:
+            return {}
+            
+        filtered_params = params.copy()
+        
+        # Define parameters that are only applicable to specific model types
+        neural_network_params = [
+            "epochs", "batch_size", "learning_rate", "early_stopping",
+            "early_stopping_patience", "validation_split"
+        ]
+        
+        # Remove neural network params from scikit-learn models
+        if model_type in ["random_forest", "logistic_regression", "linear_regression", "svm"]:
+            for param in neural_network_params:
+                if param in filtered_params:
+                    filtered_params.pop(param)
+                    logger.debug(f"Removed parameter '{param}' not applicable to {model_type}")
+        
+        # Handle XGBoost specific parameter mapping
+        if model_type == "xgboost":
+            # Map epochs to n_estimators for XGBoost
+            if "epochs" in filtered_params and "n_estimators" not in filtered_params:
+                filtered_params["n_estimators"] = filtered_params.pop("epochs")
+                logger.debug("Mapped 'epochs' to 'n_estimators' for XGBoost")
+            
+            # Remove parameters not applicable to XGBoost
+            for param in ["batch_size", "early_stopping", "validation_split"]:
+                if param in filtered_params:
+                    filtered_params.pop(param)
+                    logger.debug(f"Removed parameter '{param}' not applicable to XGBoost")
+        
+        return filtered_params
     
     @log_execution_time(logger)
     def fit(self, X: np.ndarray, y: np.ndarray, epochs: int = None, callbacks: List = None) -> None:

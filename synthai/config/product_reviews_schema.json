@@ -42,5 +42,21 @@
       "tracking_server": null,
       "experiment_name": "sentiment_analysis"
     }
+  },
+  "training_params": {
+    "test_size": 0.2,
+    "random_state": 42,
+    "epochs": 100,
+    "n_samples_trained": 0,
+    "batch_size": 32,
+    "learning_rate": 0.01,
+    "early_stopping": true,
+    "early_stopping_patience": 5,
+    "validation_split": 0.1,
+    "cross_validation": false,
+    "cv_folds": 5,
+    "stratify": true,
+    "max_features": 1000,
+    "min_df": 2
   }
 }

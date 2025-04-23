@@ -19,27 +19,61 @@ logger = get_logger(__name__)
 class DataPreprocessor:
     """Preprocesses data according to the schema definition."""
     
-    def __init__(self, schema: Dict[str, Any], random_state: int = 42, test_size: float = 0.2):
+    def __init__(self, schema: Dict[str, Any], random_state: Optional[int] = None, test_size: Optional[float] = None):
         """
         Initialize the data preprocessor.
         
         Args:
             schema: The schema definition dictionary
-            random_state: Random seed for reproducibility
-            test_size: Proportion of data to use for testing
+            random_state: Random seed for reproducibility (overrides schema if provided)
+            test_size: Proportion of data to use for testing (overrides schema if provided)
         """
         self.schema = schema
-        self.random_state = random_state
-        self.test_size = test_size
+        
+        # Get training parameters from schema if available
+        training_params = self._get_training_params_from_schema()
+        
+        # Use provided parameters if available, otherwise use schema values
+        self.random_state = random_state if random_state is not None else training_params.get("random_state", 42)
+        self.test_size = test_size if test_size is not None else training_params.get("test_size", 0.2)
+        
+        # Extract additional training parameters from schema
+        self.stratify = training_params.get("stratify", True)
+        self.cross_validation = training_params.get("cross_validation", False)
+        self.cv_folds = training_params.get("cv_folds", 5)
         
         # Initialize transformers dict to store preprocessing objects
         self.transformers = {}
         
         # Flag to disable stratification in tests
-        self._use_stratify_for_test = True
+        self._use_stratify_for_test = self.stratify
         
-        logger.info(f"DataPreprocessor initialized with test_size={test_size}, random_state={random_state}")
+        logger.info(f"DataPreprocessor initialized with test_size={self.test_size}, random_state={self.random_state}")
         logger.debug(f"Schema target: {schema.get('target', {}).get('name', 'not defined')}")
+        if "training_params" in schema:
+            logger.debug(f"Using training parameters from schema: {training_params}")
+    
+    def _get_training_params_from_schema(self) -> Dict[str, Any]:
+        """
+        Extract training parameters from schema.
+        
+        Returns:
+            Dictionary of training parameters
+        """
+        # Default training parameters
+        default_params = {
+            "test_size": 0.2,
+            "random_state": 42,
+            "stratify": True,
+            "cross_validation": False,
+            "cv_folds": 5
+        }
+        
+        # Update with schema-defined parameters if available
+        if "training_params" in self.schema:
+            default_params.update(self.schema["training_params"])
+        
+        return default_params
     
     @log_execution_time(logger)
     def preprocess(self, data: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
@@ -110,12 +144,11 @@ class DataPreprocessor:
             
             # Split into train/test sets
             pbar.set_description("Splitting into train/test sets")
-            # Modified train_test_split to not use stratification for the test cases
-            # Use stratification only when we have enough samples per class and not disabled by tests
+            # Use stratification based on schema parameters and target type
             target_type = self.schema["target"]["type"]
             use_stratify = False
             
-            if target_type in ["binary", "multiclass"] and self._use_stratify_for_test:
+            if self._use_stratify_for_test and target_type in ["binary", "multiclass"]:
                 # Check if we have enough samples in each class for stratification
                 classes, counts = np.unique(y_processed, return_counts=True)
                 min_class_count = np.min(counts)
@@ -135,6 +168,10 @@ class DataPreprocessor:
             )
             pbar.update(1)
         
+        # Store the number of samples for metadata tracking
+        self.n_samples_trained = X_train.shape[0]
+        self.n_features = X_train.shape[1]
+        
         # Log result summary
         logger.info(f"Preprocessing complete: X_train shape={X_train.shape}, X_test shape={X_test.shape}")
         if target_type in ["binary", "multiclass"]:
@@ -144,6 +181,30 @@ class DataPreprocessor:
             logger.debug(f"Test set class distribution: {dict(zip(test_classes, test_counts))}")
         
         return X_train, X_test, y_train, y_test
+    
+    def get_preprocessing_metadata(self) -> Dict[str, Any]:
+        """
+        Get metadata about the preprocessing.
+        
+        Returns:
+            Dictionary containing preprocessing metadata
+        """
+        metadata = {
+            "test_size": self.test_size,
+            "random_state": self.random_state,
+            "stratify": self._use_stratify_for_test,
+            "n_samples_trained": getattr(self, "n_samples_trained", 0),
+            "n_features": getattr(self, "n_features", 0),
+            "transformers": list(self.transformers.keys())
+        }
+        
+        # Add additional training parameters if available
+        if "training_params" in self.schema:
+            for param, value in self.schema["training_params"].items():
+                if param not in metadata:
+                    metadata[param] = value
+        
+        return metadata
     
     def _preprocess_numeric(self, series: pd.Series, name: str, preprocessing: Optional[str]) -> np.ndarray:
         """
@@ -347,7 +408,12 @@ class DataPreprocessor:
                     'schema': self.schema,
                     'transformers': self.transformers,
                     'random_state': self.random_state,
-                    'test_size': self.test_size
+                    'test_size': self.test_size,
+                    'stratify': self._use_stratify_for_test,
+                    'cross_validation': self.cross_validation,
+                    'cv_folds': self.cv_folds,
+                    'n_samples_trained': getattr(self, "n_samples_trained", 0),
+                    'n_features': getattr(self, "n_features", 0)
                 }, f)
             pbar.update(1)
         
@@ -378,6 +444,15 @@ class DataPreprocessor:
             test_size=data['test_size']
         )
         preprocessor.transformers = data['transformers']
+        preprocessor._use_stratify_for_test = data.get('stratify', True)
+        preprocessor.cross_validation = data.get('cross_validation', False)
+        preprocessor.cv_folds = data.get('cv_folds', 5)
+        
+        # Set sample and feature counts if available
+        if 'n_samples_trained' in data:
+            preprocessor.n_samples_trained = data['n_samples_trained']
+        if 'n_features' in data:
+            preprocessor.n_features = data['n_features']
         
         logger.info(f"Preprocessor loaded successfully from {path}")
         logger.debug(f"Loaded transformers: {list(preprocessor.transformers.keys())}")

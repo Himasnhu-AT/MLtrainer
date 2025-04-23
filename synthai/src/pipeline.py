@@ -202,8 +202,21 @@ def train_model_iteration(
     """Run a single iteration of model training and evaluation."""
     iteration_start_time = time.time()
     
+    # Get training parameters from schema
+    schema_validator = SchemaValidator(None)
+    schema_validator.schema = schema
+    schema_training_params = schema_validator.get_training_params()
+    
+    # Merge schema training params with config, giving priority to schema
+    merged_config = config.copy()
+    for key, value in schema_training_params.items():
+        if key in merged_config:
+            logger.debug(f"Using schema value for {key}: {value} (overriding config: {merged_config[key]})")
+        merged_config[key] = value
+    
     # Update random seed for each iteration to ensure diversity
-    iteration_config = config.copy()
+    # Note: still using config random state as base to maintain compatibility
+    iteration_config = merged_config.copy()
     iteration_config["random_state"] = config.get("random_state", 42) + iteration
     
     # Log iteration start
@@ -211,19 +224,31 @@ def train_model_iteration(
     if logger is not None and logger.isEnabledFor(logging.DEBUG):
         logger.debug(f"Iteration {iteration+1} config:")
         logger.debug(f"  Random seed: {iteration_config['random_state']}")
+        logger.debug(f"  Testing using {iteration_config['test_size'] * 100:.1f}% of data")
+        
+        if "training_params" in schema:
+            logger.debug(f"  Using training parameters from schema: {json.dumps(schema['training_params'], indent=2)}")
     
     try:
         # Preprocess data
         logger.info(f"Preprocessing data for iteration {iteration+1}...")
         preprocess_start = time.time()
         try:
-            # Pass random_state to the constructor, not to the preprocess method
-            preprocessor = DataPreprocessor(schema, random_state=iteration_config["random_state"], test_size=iteration_config.get("test_size", 0.2))
+            # Pass parameters from schema to preprocessor
+            preprocessor = DataPreprocessor(
+                schema, 
+                random_state=iteration_config["random_state"], 
+                test_size=iteration_config.get("test_size", 0.2)
+            )
             X_train, X_test, y_train, y_test = preprocessor.preprocess(data)
+            
+            # Get preprocessing metadata for model training
+            preprocessing_metadata = preprocessor.get_preprocessing_metadata()
             
             if logger is not None and logger.isEnabledFor(logging.DEBUG):
                 logger.debug(f"Data preprocessing completed in {(time.time() - preprocess_start) * 1000:.2f}ms")
                 log_processed_data_stats(logger, X_train, X_test, y_train, y_test)
+                logger.debug(f"Preprocessing metadata: {preprocessing_metadata}")
         except Exception as e:
             raise PreprocessingError(f"Error preprocessing data: {str(e)}")
         
@@ -235,13 +260,28 @@ def train_model_iteration(
             
             # Determine if this is a regression task
             task_type = schema.get("metadata", {}).get("task_type", "").lower()
-            model = model_factory.get_model(model_type, iteration_config.get("model_params", {}), task=task_type)
+            
+            # Extract model-specific hyperparameters
+            model_params = iteration_config.get("model_params", {})
+            
+            # Add training parameters from schema to model params
+            for param in ["epochs", "batch_size", "learning_rate", "early_stopping", 
+                          "early_stopping_patience", "validation_split"]:
+                if param in iteration_config:
+                    model_params[param] = iteration_config[param]
+            
+            model = model_factory.get_model(model_type, model_params, task=task_type)
             
             if logger is not None and logger.isEnabledFor(logging.DEBUG):
                 log_model_details(logger, model, model_type)
                 logger.debug(f"Starting model training with {X_train.shape[0]} samples...")
             
             model.fit(X_train, y_train)
+            
+            # Update model metadata with preprocessing metadata
+            if hasattr(model, 'update_metadata') and callable(model.update_metadata):
+                for key, value in preprocessing_metadata.items():
+                    model.update_metadata(key, value)
             
             if logger is not None and logger.isEnabledFor(logging.DEBUG):
                 logger.debug(f"Model training completed in {(time.time() - training_start) * 1000:.2f}ms")

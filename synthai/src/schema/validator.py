@@ -46,7 +46,45 @@ class SchemaValidator:
                 "properties": {
                     "description": {"type": "string"},
                     "version": {"type": "string"},
-                    "author": {"type": "string"}
+                    "author": {"type": "string"},
+                    "task_type": {"type": "string", "enum": ["classification", "regression"]}
+                }
+            },
+            "model_tracking": {
+                "type": "object",
+                "properties": {
+                    "enable_metadata": {"type": "boolean"},
+                    "track_performance_history": {"type": "boolean"},
+                    "track_training_metrics": {"type": "boolean"},
+                    "required_metadata": {
+                        "type": "array",
+                        "items": {"type": "string"}
+                    },
+                    "experiment_tracking": {
+                        "type": "object",
+                        "properties": {
+                            "enable": {"type": "boolean"},
+                            "tracking_server": {"type": ["string", "null"]},
+                            "experiment_name": {"type": "string"}
+                        }
+                    }
+                }
+            },
+            "training_params": {
+                "type": "object",
+                "properties": {
+                    "test_size": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+                    "random_state": {"type": "integer", "minimum": 0},
+                    "epochs": {"type": "integer", "minimum": 1},
+                    "n_samples_trained": {"type": "integer", "minimum": 0},
+                    "batch_size": {"type": "integer", "minimum": 1},
+                    "learning_rate": {"type": "number", "minimum": 0.0},
+                    "early_stopping": {"type": "boolean"},
+                    "early_stopping_patience": {"type": "integer", "minimum": 1},
+                    "validation_split": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+                    "cross_validation": {"type": "boolean"},
+                    "cv_folds": {"type": "integer", "minimum": 2},
+                    "stratify": {"type": "boolean"}
                 }
             }
         }
@@ -162,6 +200,72 @@ class SchemaValidator:
         
         return True
     
+    def get_training_params(self) -> Dict[str, Any]:
+        """
+        Get the training parameters from the schema.
+        
+        Returns:
+            A dictionary containing training parameters or default values if not specified
+        """
+        if self.schema is None:
+            self.load_schema()
+            
+        # Default training parameters
+        default_params = {
+            "test_size": 0.2,
+            "random_state": 42,
+            "epochs": 100,
+            "batch_size": 32,
+            "early_stopping": False,
+            "validation_split": 0.1,
+            "cross_validation": False,
+            "stratify": True
+        }
+        
+        # Update with schema-defined parameters if available
+        if "training_params" in self.schema:
+            default_params.update(self.schema["training_params"])
+            
+        return default_params
+    
+    def get_model_tracking_config(self) -> Dict[str, Any]:
+        """
+        Get the model tracking configuration from the schema.
+        
+        Returns:
+            A dictionary containing model tracking configuration or default values if not specified
+        """
+        if self.schema is None:
+            self.load_schema()
+            
+        # Default model tracking configuration
+        default_config = {
+            "enable_metadata": True,
+            "track_performance_history": True,
+            "track_training_metrics": True,
+            "required_metadata": ["training_time", "epochs", "n_samples_trained", "n_features"],
+            "experiment_tracking": {
+                "enable": False,
+                "tracking_server": None,
+                "experiment_name": "default"
+            }
+        }
+        
+        # Update with schema-defined configuration if available
+        if "model_tracking" in self.schema:
+            # For nested dictionaries, we need to update them separately
+            if "experiment_tracking" in self.schema["model_tracking"]:
+                default_config["experiment_tracking"].update(
+                    self.schema["model_tracking"].get("experiment_tracking", {})
+                )
+            
+            # Remove experiment_tracking from copy to avoid double updating
+            model_tracking_copy = self.schema["model_tracking"].copy()
+            model_tracking_copy.pop("experiment_tracking", None)
+            default_config.update(model_tracking_copy)
+            
+        return default_config
+    
     @staticmethod
     def generate_schema_template() -> Dict[str, Any]:
         """
@@ -180,6 +284,36 @@ class SchemaValidator:
             "metadata": {
                 "description": "Example schema for model training",
                 "version": "1.0",
-                "author": "SynthAI"
+                "author": "SynthAI",
+                "task_type": "classification"
+            },
+            "model_tracking": {
+                "enable_metadata": True,
+                "track_performance_history": True,
+                "track_training_metrics": True,
+                "required_metadata": [
+                    "training_time", 
+                    "epochs", 
+                    "n_samples_trained", 
+                    "n_features"
+                ],
+                "experiment_tracking": {
+                    "enable": True,
+                    "tracking_server": None,
+                    "experiment_name": "default_experiment"
+                }
+            },
+            "training_params": {
+                "test_size": 0.2,
+                "random_state": 42,
+                "epochs": 100,
+                "batch_size": 32,
+                "learning_rate": 0.001,
+                "early_stopping": True,
+                "early_stopping_patience": 5,
+                "validation_split": 0.1,
+                "cross_validation": False,
+                "cv_folds": 5,
+                "stratify": True
             }
         }
