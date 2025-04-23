@@ -5,6 +5,7 @@
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 # Ensure the virtual environment is activated
@@ -19,7 +20,13 @@ if [[ "$VIRTUAL_ENV" == "" ]]; then
 fi
 
 echo -e "${BLUE}=== SynthAI Available Models ===${NC}"
-python -m synthai.cli list_models
+
+# Directly import and run the command from the cli module to avoid any issues with command discovery
+python -c "from synthai.cli import app; app(['list-models'])" || {
+    # If the above fails, try the module approach
+    echo -e "${YELLOW}Trying alternative method...${NC}"
+    python -m synthai.cli list-models
+}
 
 echo -e "\n${YELLOW}To generate a sample schema, use:${NC}"
-echo -e "python -m synthai.cli generate_schema <output_path>${NC}"
+echo -e "python -m synthai.cli generate-schema <output_path>${NC}"

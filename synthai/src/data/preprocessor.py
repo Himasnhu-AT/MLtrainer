@@ -142,7 +142,8 @@ class DataPreprocessor:
         
         # Apply preprocessing if specified
         if preprocessing == "one-hot":
-            encoder = OneHotEncoder(sparse=False, handle_unknown='ignore')
+            # Updated to use sparse_output instead of sparse
+            encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
             self.transformers[f"{name}_encoder"] = encoder
             return encoder.fit_transform(series.values.reshape(-1, 1))
         

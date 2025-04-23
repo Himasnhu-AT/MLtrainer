@@ -31,20 +31,27 @@ def train(
     try:
         # Set up arguments for the pipeline
         import sys
+        
+        logger.info(f"Training model with data: {data}, schema: {schema}, model type: {model_type}")
+        logger.info(f"Output directory: {output}, log level: {log_level}")
+        
+        # Replace sys.argv with our actual arguments
         sys.argv = [
             "pipeline.py",
-            f"--data={data}",
-            f"--schema={schema}",
-            f"--model-type={model_type}",
-            f"--output={output}",
-            f"--log-level={log_level}"
+            "--data", data,
+            "--schema", schema,
+            "--model-type", model_type,
+            "--output", output,
+            "--log-level", log_level
         ]
         
         if config:
-            sys.argv.append(f"--config={config}")
+            sys.argv.extend(["--config", config])
         
         # Run the pipeline
+        logger.info("Starting the training pipeline")
         run_pipeline()
+        logger.info("Training completed successfully")
         
     except Exception as e:
         logger.error(f"Error during training: {str(e)}")
