@@ -2,3 +2,10 @@ venv
 .env
 __pycache__
 *.pyc
+synthai.egg-info
+*.egg
+*.egg-info
+*.log
+*.sqlite3
+*.db
+*.pkl

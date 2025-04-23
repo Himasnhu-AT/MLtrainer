@@ -1,0 +1,29 @@
+{
+  "features": [
+    {"name": "age", "type": "numeric", "preprocessing": "scale"},
+    {"name": "income", "type": "numeric", "preprocessing": "scale"},
+    {"name": "education", "type": "categorical", "preprocessing": "one-hot"},
+    {"name": "occupation", "type": "categorical", "preprocessing": "one-hot"},
+    {"name": "family_size", "type": "numeric", "preprocessing": "scale"},
+    {"name": "home_ownership", "type": "categorical", "preprocessing": "one-hot"},
+    {"name": "credit_score", "type": "numeric", "preprocessing": "scale"},
+    {"name": "months_customer", "type": "numeric", "preprocessing": "scale"},
+    {"name": "previous_purchases", "type": "numeric", "preprocessing": "scale"},
+    {"name": "has_credit_card", "type": "boolean"},
+    {"name": "payment_method", "type": "categorical", "preprocessing": "one-hot"},
+    {"name": "product_category", "type": "categorical", "preprocessing": "one-hot"},
+    {"name": "customer_service_calls", "type": "numeric", "preprocessing": "scale"},
+    {"name": "avg_monthly_spend", "type": "numeric", "preprocessing": "scale"},
+    {"name": "satisfaction_score", "type": "numeric", "preprocessing": "scale"},
+    {"name": "last_purchase_days_ago", "type": "numeric", "preprocessing": "scale"}
+  ],
+  "target": {
+    "name": "churn",
+    "type": "binary"
+  },
+  "metadata": {
+    "description": "Customer churn prediction model",
+    "version": "1.0",
+    "author": "SynthAI"
+  }
+}

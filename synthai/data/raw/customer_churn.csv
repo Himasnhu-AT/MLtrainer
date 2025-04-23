@@ -1,0 +1,51 @@
+customer_id,age,income,education,occupation,family_size,home_ownership,credit_score,months_customer,previous_purchases,has_credit_card,payment_method,product_category,customer_service_calls,avg_monthly_spend,satisfaction_score,last_purchase_days_ago,churn
+1001,34,58000,Bachelors,Engineer,3,Own,710,18,12,1,Credit Card,Electronics,2,245.50,8,15,0
+1002,42,72000,Masters,Manager,4,Own,750,36,24,1,Credit Card,Furniture,1,380.75,9,7,0
+1003,28,45000,High School,Technician,2,Rent,680,12,5,1,Debit Card,Clothing,4,180.25,6,45,1
+1004,55,92000,PhD,Executive,2,Own,820,48,30,1,Credit Card,Electronics,0,500.00,9,3,0
+1005,23,32000,High School,Sales Associate,1,Rent,610,6,2,0,Cash,Clothing,1,120.00,7,30,0
+1006,47,68000,Bachelors,Accountant,5,Own,740,24,15,1,Credit Card,Home Goods,2,290.50,8,21,0
+1007,31,49000,Associates,Nurse,3,Rent,700,15,8,1,Debit Card,Health,3,210.25,5,60,1
+1008,62,110000,Masters,Consultant,2,Own,800,72,45,1,Credit Card,Luxury,1,850.00,9,5,0
+1009,26,38000,Bachelors,Teacher,1,Rent,650,9,4,0,Debit Card,Books,5,95.75,4,75,1
+1010,39,61000,Bachelors,IT Specialist,4,Own,720,30,18,1,Credit Card,Electronics,2,275.50,7,14,0
+1011,51,84000,Masters,Professor,3,Own,780,42,28,1,Credit Card,Books,1,320.25,8,10,0
+1012,29,43000,Associates,Designer,2,Rent,670,14,6,1,Debit Card,Clothing,3,185.00,6,40,1
+1013,45,75000,Bachelors,Marketing Manager,4,Own,760,36,22,1,Credit Card,Home Goods,1,345.75,8,8,0
+1014,33,52000,High School,Contractor,3,Rent,690,18,10,1,Debit Card,Tools,4,235.50,5,55,1
+1015,58,95000,PhD,Scientist,2,Own,810,60,38,1,Credit Card,Electronics,0,475.25,9,4,0
+1016,25,36000,Bachelors,Customer Service,1,Rent,630,8,3,0,Debit Card,Clothing,5,105.00,4,65,1
+1017,44,70000,Masters,HR Manager,3,Own,750,34,20,1,Credit Card,Furniture,2,305.50,7,18,0
+1018,37,59000,Associates,Electrician,4,Rent,710,22,14,1,Debit Card,Tools,3,265.75,6,25,0
+1019,50,88000,Bachelors,Dentist,3,Own,790,45,29,1,Credit Card,Health,1,395.00,8,12,0
+1020,27,41000,High School,Cashier,2,Rent,640,10,4,0,Cash,Groceries,6,95.25,3,85,1
+1021,46,78000,Masters,Financial Advisor,4,Own,770,40,25,1,Credit Card,Financial,1,350.75,8,9,0
+1022,30,47000,Associates,Technician,2,Rent,685,16,7,1,Debit Card,Electronics,3,195.50,5,50,1
+1023,53,91000,Bachelors,Attorney,3,Own,800,50,32,1,Credit Card,Luxury,0,525.25,9,6,0
+1024,24,34000,High School,Barista,1,Rent,620,7,2,0,Cash,Food,4,85.00,5,70,1
+1025,41,65000,Bachelors,Project Manager,4,Own,730,32,19,1,Credit Card,Office Supplies,2,285.75,7,20,0
+1026,35,54000,Associates,Nurse,3,Rent,695,20,11,1,Debit Card,Health,3,225.50,6,35,0
+1027,57,98000,Masters,Senior Manager,2,Own,815,65,40,1,Credit Card,Travel,1,575.00,9,5,0
+1028,22,31000,High School,Retail Associate,1,Rent,600,5,1,0,Cash,Clothing,6,75.25,4,90,1
+1029,48,80000,Bachelors,Architect,3,Own,775,44,27,1,Credit Card,Home Goods,1,365.50,8,11,0
+1030,32,50000,Associates,Mechanic,3,Rent,690,17,9,1,Debit Card,Automotive,4,215.75,5,45,1
+1031,60,105000,PhD,Professor,2,Own,820,70,43,1,Credit Card,Books,0,495.25,9,4,0
+1032,25,37000,Bachelors,Administrative Assistant,1,Rent,640,9,3,0,Debit Card,Office Supplies,5,110.00,4,60,1
+1033,43,69000,Masters,IT Manager,4,Own,745,33,21,1,Credit Card,Electronics,2,300.50,8,15,0
+1034,36,57000,Bachelors,Paramedic,3,Rent,705,21,13,1,Debit Card,Health,3,245.75,6,30,0
+1035,52,90000,Masters,Director,3,Own,795,48,31,1,Credit Card,Luxury,1,450.00,9,7,0
+1036,29,44000,High School,Sales Representative,2,Rent,675,13,5,1,Debit Card,Clothing,4,175.25,5,55,1
+1037,45,77000,Bachelors,Engineer,4,Own,765,38,24,1,Credit Card,Electronics,1,340.50,8,10,0
+1038,33,53000,Associates,Plumber,3,Rent,695,19,10,1,Debit Card,Tools,3,230.75,6,40,1
+1039,56,96000,PhD,Researcher,2,Own,810,58,36,1,Credit Card,Books,0,480.00,9,5,0
+1040,26,39000,Bachelors,Social Media Specialist,1,Rent,655,10,4,0,Debit Card,Electronics,5,115.25,4,65,1
+1041,47,82000,Masters,Operations Manager,4,Own,780,42,26,1,Credit Card,Office Supplies,1,375.50,8,8,0
+1042,34,55000,Associates,Dental Hygienist,3,Rent,700,20,12,1,Debit Card,Health,3,240.75,6,35,0
+1043,59,102000,Masters,CFO,2,Own,825,68,42,1,Credit Card,Financial,0,600.00,9,3,0
+1044,27,40000,High School,Customer Service Rep,2,Rent,660,11,4,0,Cash,Food,6,90.25,4,80,1
+1045,44,73000,Bachelors,Product Manager,4,Own,755,35,22,1,Credit Card,Electronics,2,325.50,7,16,0
+1046,31,48000,Associates,Physical Therapist,2,Rent,685,16,8,1,Debit Card,Health,4,200.75,5,50,1
+1047,54,93000,Masters,Attorney,3,Own,805,52,33,1,Credit Card,Luxury,1,535.00,9,6,0
+1048,23,33000,High School,Server,1,Rent,615,6,2,0,Cash,Food,5,80.25,4,85,1
+1049,40,64000,Bachelors,Marketing Specialist,3,Own,725,31,19,1,Credit Card,Home Goods,2,280.50,7,19,0
+1050,35,56000,Associates,Electrician,3,Rent,705,21,13,1,Debit Card,Tools,3,235.75,6,30,0
