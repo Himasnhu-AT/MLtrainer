@@ -31,6 +31,11 @@ class TestDataLoader:
     @pytest.fixture
     def sample_excel_data(self):
         """Fixture providing sample Excel data."""
+        try:
+            import openpyxl
+        except ImportError:
+            pytest.skip("openpyxl not installed, skipping Excel tests")
+            
         data = pd.DataFrame({
             "id": [1, 2, 3, 4, 5],
             "name": ["Alice", "Bob", "Charlie", "David", "Eve"],

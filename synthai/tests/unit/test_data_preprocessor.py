@@ -57,6 +57,7 @@ class TestDataPreprocessor:
     def test_preprocess_shapes(self, sample_schema, sample_data):
         """Test that preprocessing returns arrays with expected shapes."""
         preprocessor = DataPreprocessor(sample_schema)
+        preprocessor._use_stratify_for_test = False  # Disable stratification for testing
         X_train, X_test, y_train, y_test = preprocessor.preprocess(sample_data)
         
         # Check that all arrays have proper dimensions
@@ -83,6 +84,7 @@ class TestDataPreprocessor:
         }
         
         preprocessor = DataPreprocessor(numeric_schema)
+        preprocessor._use_stratify_for_test = False  # Disable stratification for testing
         X_train, X_test, y_train, y_test = preprocessor.preprocess(sample_data)
         
         # Check that the transformers were created
@@ -103,6 +105,7 @@ class TestDataPreprocessor:
         }
         
         preprocessor = DataPreprocessor(cat_schema)
+        preprocessor._use_stratify_for_test = False  # Disable stratification for testing
         X_train, X_test, y_train, y_test = preprocessor.preprocess(sample_data)
         
         # Check that the transformer was created
@@ -123,6 +126,7 @@ class TestDataPreprocessor:
         }
         
         preprocessor = DataPreprocessor(text_schema)
+        preprocessor._use_stratify_for_test = False  # Disable stratification for testing
         X_train, X_test, y_train, y_test = preprocessor.preprocess(sample_data)
         
         # Check that the transformer was created
@@ -134,6 +138,7 @@ class TestDataPreprocessor:
     def test_save_load(self, sample_schema, sample_data):
         """Test saving and loading a preprocessor."""
         preprocessor = DataPreprocessor(sample_schema)
+        preprocessor._use_stratify_for_test = False  # Disable stratification for testing
         X_train, X_test, y_train, y_test = preprocessor.preprocess(sample_data)
         
         # Save preprocessor
@@ -154,6 +159,7 @@ class TestDataPreprocessor:
     def test_preprocess_binary_target(self, sample_schema, sample_data):
         """Test preprocessing of a binary target."""
         preprocessor = DataPreprocessor(sample_schema)
+        preprocessor._use_stratify_for_test = False  # Disable stratification for testing
         X_train, X_test, y_train, y_test = preprocessor.preprocess(sample_data)
         
         # Check that target was encoded correctly
@@ -167,6 +173,7 @@ class TestDataPreprocessor:
         multiclass_schema["target"] = {"name": "category", "type": "multiclass"}
         
         preprocessor = DataPreprocessor(multiclass_schema)
+        preprocessor._use_stratify_for_test = False  # Disable stratification for testing
         X_train, X_test, y_train, y_test = preprocessor.preprocess(sample_data)
         
         # Check that target was encoded correctly

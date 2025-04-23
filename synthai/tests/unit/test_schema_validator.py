@@ -28,9 +28,13 @@ class TestSchemaValidator:
     @pytest.fixture
     def valid_schema_file(self, valid_schema):
         """Fixture providing a path to a valid schema file."""
-        with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as f:
+        # Fixed: Use 'w' mode instead of default binary mode for JSON
+        fd, path = tempfile.mkstemp(suffix='.json')
+        with open(path, 'w') as f:
             json.dump(valid_schema, f)
-            return f.name
+        # Close the file descriptor
+        os.close(fd)
+        return path
     
     @pytest.fixture
     def valid_data(self):
@@ -54,9 +58,13 @@ class TestSchemaValidator:
     @pytest.fixture
     def invalid_schema_file(self, invalid_schema):
         """Fixture providing a path to an invalid schema file."""
-        with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as f:
+        # Fixed: Use 'w' mode instead of default binary mode for JSON
+        fd, path = tempfile.mkstemp(suffix='.json')
+        with open(path, 'w') as f:
             json.dump(invalid_schema, f)
-            return f.name
+        # Close the file descriptor
+        os.close(fd)
+        return path
     
     def test_load_schema_valid(self, valid_schema_file, valid_schema):
         """Test loading a valid schema."""
@@ -143,7 +151,7 @@ class TestSchemaValidator:
         assert isinstance(template["target"], dict)
         assert "name" in template["target"]
         assert "type" in template["target"]
-        
+    
     def teardown_method(self, method):
         """Clean up after tests by removing any temporary files."""
         # This will be called after each test method
