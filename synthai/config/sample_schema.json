@@ -1,0 +1,58 @@
+{
+    "features": [
+        {
+            "name": "age",
+            "type": "numeric",
+            "preprocessing": "scale",
+            "nullable": false,
+            "constraints": {
+                "min": 0,
+                "max": 120
+            }
+        },
+        {
+            "name": "income",
+            "type": "numeric",
+            "preprocessing": "minmax",
+            "nullable": true
+        },
+        {
+            "name": "occupation",
+            "type": "categorical",
+            "preprocessing": "one-hot",
+            "nullable": false
+        },
+        {
+            "name": "education",
+            "type": "categorical",
+            "preprocessing": "label",
+            "nullable": false
+        },
+        {
+            "name": "description",
+            "type": "text",
+            "preprocessing": "tfidf",
+            "nullable": true
+        },
+        {
+            "name": "registration_date",
+            "type": "datetime",
+            "preprocessing": "components",
+            "nullable": false
+        },
+        {
+            "name": "is_active",
+            "type": "boolean",
+            "nullable": false
+        }
+    ],
+    "target": {
+        "name": "subscription_status",
+        "type": "binary"
+    },
+    "metadata": {
+        "description": "Customer subscription prediction model",
+        "version": "1.0.0",
+        "author": "SynthAI Team"
+    }
+}
