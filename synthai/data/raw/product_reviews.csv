@@ -1,0 +1,31 @@
+review_id,product_name,review_text,review_date,verified_purchase,rating
+1001,Wireless Earbuds,"These earbuds are amazing! The sound quality is excellent and the battery life is impressive. I use them every day for my workouts.",2025-01-15,1,5
+1002,Wireless Earbuds,"Terrible product. They stopped working after two weeks and customer service was no help at all. Save your money.",2025-01-18,1,1
+1003,Smart Watch,"I've had my watch for about a month now and I'm very satisfied. The fitness tracking features are accurate and the battery lasts about 5 days.",2025-01-20,1,4
+1004,Smart Watch,"Average at best. The interface is clunky and notifications are delayed. It does look nice though.",2025-01-22,1,3
+1005,Coffee Maker,"Best coffee maker I've ever owned! Makes perfect coffee every time and it's so easy to clean.",2025-01-23,1,5
+1006,Coffee Maker,"Disappointed with this purchase. Coffee tastes burnt and the machine is very noisy.",2025-01-25,1,2
+1007,Bluetooth Speaker,"Great sound quality for the size. The bass is impressive and it gets quite loud without distortion. Battery life is also excellent.",2025-01-27,1,5
+1008,Bluetooth Speaker,"Mediocre speaker. Sound is OK but nothing special. Battery doesn't last as long as advertised.",2025-01-30,1,3
+1009,Laptop Stand,"Simple and effective. Has improved my posture while working from home. Well worth the price.",2025-02-02,1,4
+1010,Laptop Stand,"Flimsy construction and not adjustable enough. I returned it after a week.",2025-02-05,1,2
+1011,Gaming Mouse,"Perfect for gaming! The response time is incredible and the customizable buttons are very useful.",2025-02-07,1,5
+1012,Gaming Mouse,"Good mouse but a bit too expensive for what you get. It works well but there are better options for the price.",2025-02-10,1,3
+1013,Wireless Charger,"Charges my phone quickly and the design looks elegant on my desk. No complaints!",2025-02-12,1,5
+1014,Wireless Charger,"It works, but it's very position-sensitive. Have to place the phone just right or it won't charge.",2025-02-15,1,3
+1015,Air Purifier,"Has made a noticeable difference in our home. No more allergies and the air feels fresher. Quiet operation too.",2025-02-18,1,5
+1016,Air Purifier,"Too loud on higher settings and the replacement filters are expensive. It seems to work but not sure if it's worth it.",2025-02-20,1,2
+1017,Smart Bulbs,"Love these bulbs! The app is intuitive and being able to schedule and dim the lights remotely is fantastic.",2025-02-22,1,5
+1018,Smart Bulbs,"Difficult to set up and they occasionally disconnect from the network. When they work, they're great.",2025-02-25,1,3
+1019,External SSD,"Lightning fast and very portable. Has improved my workflow significantly. Highly recommended for anyone who works with large files.",2025-02-27,1,5
+1020,External SSD,"Good storage solution but a bit expensive. Works as advertised though.",2025-03-01,1,4
+1021,Noise Cancelling Headphones,"These headphones are a game changer for travel and office work. The noise cancellation is truly impressive.",2025-03-03,1,5
+1022,Noise Cancelling Headphones,"Decent sound but the noise cancellation is barely noticeable. Not worth the premium price.",2025-03-05,1,2
+1023,Robot Vacuum,"This little robot has changed my life! It keeps our floors clean with minimal effort on my part. Even works well with pet hair.",2025-03-07,1,5
+1024,Robot Vacuum,"Constantly gets stuck and the app is buggy. When it does work, it does an OK job, but that's not often enough.",2025-03-10,1,2
+1025,Fitness Tracker,"Accurate tracking and comfortable to wear 24/7. The sleep analysis feature has been particularly helpful.",2025-03-12,1,4
+1026,Fitness Tracker,"Battery life is disappointing and the heart rate monitor is inconsistent. Not recommended for serious athletes.",2025-03-15,1,2
+1027,Security Camera,"Easy to set up and the picture quality is excellent, even at night. The motion alerts work reliably.",2025-03-17,1,5
+1028,Security Camera,"Privacy concerns aside, the camera itself is decent. App could use some improvements though.",2025-03-20,1,3
+1029,Portable Projector,"Perfect for movie nights! Projects a clear image even in rooms that aren't completely dark. Very happy with this purchase.",2025-03-22,1,5
+1030,Portable Projector,"Underwhelming brightness and the fan is louder than expected. It's portable but that's about the only positive.",2025-03-25,1,2

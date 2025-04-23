@@ -1,0 +1,29 @@
+{
+  "features": [
+    {
+      "name": "product_name",
+      "type": "categorical",
+      "preprocessing": "one-hot"
+    },
+    {
+      "name": "review_text",
+      "type": "text",
+      "preprocessing": "tfidf"
+    },
+    {
+      "name": "verified_purchase",
+      "type": "boolean",
+      "preprocessing": "one-hot"
+    }
+  ],
+  "target": {
+    "name": "rating",
+    "type": "multiclass"
+  },
+  "metadata": {
+    "description": "Product review sentiment analysis dataset",
+    "task_type": "classification",
+    "author": "SynthAI",
+    "created_date": "2025-04-23"
+  }
+}

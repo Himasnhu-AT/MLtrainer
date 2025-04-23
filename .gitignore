@@ -10,3 +10,4 @@ synthai.egg-info
 *.db
 *.pkl
 .pytest_cache
+.coverage

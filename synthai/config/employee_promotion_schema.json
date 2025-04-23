@@ -1,0 +1,44 @@
+{
+  "features": [
+    {
+      "name": "age",
+      "type": "numeric",
+      "preprocessing": "scale"
+    },
+    {
+      "name": "salary",
+      "type": "numeric",
+      "preprocessing": "minmax"
+    },
+    {
+      "name": "department",
+      "type": "categorical",
+      "preprocessing": "one-hot"
+    },
+    {
+      "name": "education",
+      "type": "categorical",
+      "preprocessing": "one-hot"
+    },
+    {
+      "name": "experience_years",
+      "type": "numeric",
+      "preprocessing": "scale"
+    },
+    {
+      "name": "performance_rating",
+      "type": "numeric",
+      "preprocessing": "scale"
+    }
+  ],
+  "target": {
+    "name": "promotion_eligible",
+    "type": "binary"
+  },
+  "metadata": {
+    "description": "Employee promotion prediction dataset",
+    "task_type": "classification",
+    "author": "SynthAI",
+    "created_date": "2025-04-23"
+  }
+}

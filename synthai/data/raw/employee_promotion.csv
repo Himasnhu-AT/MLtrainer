@@ -1,0 +1,31 @@
+employee_id,age,salary,department,job_title,education,experience_years,performance_rating,promotion_eligible
+1001,35,75000,Engineering,Software Engineer,Masters,5,4.2,1
+1002,42,95000,Engineering,Senior Developer,Bachelors,10,4.5,1
+1003,28,62000,Marketing,Marketing Specialist,Bachelors,3,3.8,0
+1004,45,120000,Management,Product Manager,PhD,12,4.7,1
+1005,31,68000,Finance,Financial Analyst,Masters,4,3.9,0
+1006,37,82000,Engineering,DevOps Engineer,Bachelors,7,4.1,1
+1007,29,58000,HR,HR Coordinator,Bachelors,2,3.6,0
+1008,52,135000,Management,Senior Manager,Masters,18,4.8,1
+1009,33,72000,Marketing,Marketing Manager,Masters,6,4.0,1
+1010,39,88000,Engineering,QA Engineer,Bachelors,8,3.7,0
+1011,44,110000,Finance,Finance Manager,Masters,15,4.6,1
+1012,27,55000,Sales,Sales Representative,Bachelors,2,3.5,0
+1013,36,79000,IT,IT Specialist,Bachelors,6,4.3,1
+1014,48,125000,Management,Department Head,PhD,16,4.9,1
+1015,32,65000,Customer Service,CS Team Lead,Bachelors,5,3.9,0
+1016,41,92000,Engineering,Backend Developer,Masters,9,4.4,1
+1017,30,60000,Marketing,Digital Marketer,Bachelors,4,3.8,0
+1018,38,84000,Finance,Senior Analyst,Masters,8,4.2,1
+1019,26,52000,HR,HR Assistant,Bachelors,1,3.4,0
+1020,46,115000,Sales,Sales Manager,Bachelors,14,4.6,1
+1021,34,73000,Engineering,Frontend Developer,Bachelors,5,4.0,0
+1022,49,130000,Management,Director,Masters,20,4.9,1
+1023,31,66000,Customer Service,Support Specialist,Bachelors,4,3.7,0
+1024,40,90000,IT,Systems Administrator,Masters,10,4.3,1
+1025,35,77000,Marketing,Content Manager,Bachelors,7,4.1,1
+1026,43,98000,Finance,Risk Analyst,PhD,12,4.5,1
+1027,29,59000,Sales,Sales Associate,Bachelors,3,3.6,0
+1028,51,132000,Management,Executive,Masters,17,4.8,1
+1029,37,81000,Engineering,Data Engineer,Masters,8,4.2,1
+1030,32,64000,HR,Recruiter,Bachelors,5,3.8,0

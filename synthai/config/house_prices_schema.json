@@ -1,0 +1,59 @@
+{
+  "features": [
+    {
+      "name": "square_feet",
+      "type": "numeric",
+      "preprocessing": "scale"
+    },
+    {
+      "name": "bedrooms",
+      "type": "numeric",
+      "preprocessing": "scale"
+    },
+    {
+      "name": "bathrooms",
+      "type": "numeric",
+      "preprocessing": "scale"
+    },
+    {
+      "name": "age",
+      "type": "numeric",
+      "preprocessing": "scale"
+    },
+    {
+      "name": "garage_spaces",
+      "type": "numeric",
+      "preprocessing": "scale"
+    },
+    {
+      "name": "lot_size",
+      "type": "numeric",
+      "preprocessing": "scale"
+    },
+    {
+      "name": "pool",
+      "type": "categorical",
+      "preprocessing": "one-hot"
+    },
+    {
+      "name": "distance_to_city_center",
+      "type": "numeric",
+      "preprocessing": "scale"
+    },
+    {
+      "name": "neighborhood",
+      "type": "categorical",
+      "preprocessing": "one-hot"
+    }
+  ],
+  "target": {
+    "name": "price",
+    "type": "continuous"
+  },
+  "metadata": {
+    "description": "House price prediction dataset",
+    "task_type": "regression",
+    "author": "SynthAI",
+    "created_date": "2025-04-23"
+  }
+}
