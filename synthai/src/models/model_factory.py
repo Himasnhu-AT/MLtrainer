@@ -348,6 +348,25 @@ class ClassificationModel(BaseModel):
                 pbar.set_description(f"Error: {str(e)}")
                 raise
 
+    def predict_proba(self, X: np.ndarray) -> np.ndarray:
+        """
+        Make probability predictions using the trained model.
+        
+        Args:
+            X: Feature matrix
+            
+        Returns:
+            Array of probability predictions
+        """
+        if self.model is None:
+            logger.error("Model has not been trained yet")
+            raise ValueError("Model has not been trained yet")
+            
+        if not hasattr(self.model, "predict_proba"):
+            raise NotImplementedError("Underlying model does not support predict_proba")
+            
+        return self.model.predict_proba(X)
+
 
 class RegressionModel(BaseModel):
     """Regression model class."""

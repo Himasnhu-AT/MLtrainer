@@ -17,6 +17,7 @@ from synthai.src.data.loader import DataLoader
 from synthai.src.data.preprocessor import DataPreprocessor
 from synthai.src.models.model_factory import ModelFactory
 from synthai.src.models.evaluator import ModelEvaluator
+from synthai.src.models.tuner import ModelTuner
 from synthai.src.utils.logger import setup_logger, log_method_call, log_execution_time
 from synthai.src.error_codes import (
     ValidationError, 
@@ -44,6 +45,7 @@ def parse_args():
     parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
     parser.add_argument("--iterations", type=int, default=1, 
                         help="Number of model training iterations to run")
+    parser.add_argument("--tune", action="store_true", help="Enable hyperparameter tuning")
     
     return parser.parse_args()
 
@@ -197,7 +199,8 @@ def train_model_iteration(
     model_type: str, 
     config: Dict[str, Any], 
     iteration: int,
-    output_dir: str
+    output_dir: str,
+    tune: bool = False
 ) -> Dict[str, Any]:
     """Run a single iteration of model training and evaluation."""
     iteration_start_time = time.time()
@@ -276,7 +279,45 @@ def train_model_iteration(
                 log_model_details(logger, model, model_type)
                 logger.debug(f"Starting model training with {X_train.shape[0]} samples...")
             
-            model.fit(X_train, y_train)
+            if tune:
+                # Perform hyperparameter tuning
+                logger.info("Performing hyperparameter tuning...")
+                
+                # Define param grid based on model type (simplified example)
+                # In a real scenario, this should come from config or schema
+                param_grid = {}
+                if model_type == "random_forest":
+                    param_grid = {
+                        "n_estimators": [50, 100, 200],
+                        "max_depth": [None, 10, 20, 30],
+                        "min_samples_split": [2, 5, 10]
+                    }
+                elif model_type == "xgboost":
+                    param_grid = {
+                        "n_estimators": [50, 100, 200],
+                        "learning_rate": [0.01, 0.1, 0.2],
+                        "max_depth": [3, 5, 7]
+                    }
+                # Add more models...
+                
+                if param_grid:
+                    # Use random search if iterations > 1 (reusing iterations arg for n_iter in random search)
+                    # This is a bit of a hack to reuse the arg
+                    n_iter = iteration_config.get("iterations", 10)
+                    method = "random" if n_iter > 1 else "grid"
+                    
+                    tuner = ModelTuner(model, param_grid, method=method, n_iter=n_iter, cv=3)
+                    tune_results = tuner.tune(X_train, y_train)
+                    
+                    # Update model metadata with tuning results
+                    if hasattr(model, 'update_metadata'):
+                        model.update_metadata('tuned_params', tune_results['best_params'])
+                        model.update_metadata('tuning_score', tune_results['best_score'])
+                else:
+                    logger.warning(f"No parameter grid defined for {model_type}, skipping tuning.")
+                    model.fit(X_train, y_train)
+            else:
+                model.fit(X_train, y_train)
             
             # Update model metadata with preprocessing metadata
             if hasattr(model, 'update_metadata') and callable(model.update_metadata):
@@ -501,7 +542,8 @@ def main():
                     model_type=args.model_type,
                     config=config,
                     iteration=i,
-                    output_dir=args.output
+                    output_dir=args.output,
+                    tune=args.tune
                 )
                 iteration_results.append(result)
             except Exception as e:

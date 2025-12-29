@@ -12,6 +12,9 @@ from synthai.src.pipeline import main as run_pipeline
 from synthai.src.utils.logger import setup_logger
 from synthai.src.schema.validator import SchemaValidator
 from synthai.src.models.model_factory import ModelFactory
+from synthai.src.serving.app import start_server
+from synthai.src.models.explainer import ModelExplainer
+from synthai.src.models.tuner import ModelTuner
 from synthai.src.error_codes import (
     SUCCESS,
     ERROR_INVALID_ARGUMENT,
@@ -235,6 +238,159 @@ def validate_schema(
         logger.error(f"Error validating schema: {str(e)}")
         typer.echo(f"ERROR {ERROR_VALIDATION_FAILED}: {str(e)}", err=True)
         raise typer.Exit(code=ERROR_VALIDATION_FAILED)
+
+@app.command()
+def serve(
+    model_path: str = typer.Argument(..., help="Path to the trained model file"),
+    host: str = typer.Option("0.0.0.0", help="Host to bind to"),
+    port: int = typer.Option(8000, help="Port to bind to"),
+    log_level: str = typer.Option("INFO", help="Logging level")
+):
+    """
+    Serve a trained model via REST API.
+    """
+    # Update logger with specified log level
+    global logger
+    logger = setup_logger("synthai_cli", level=log_level)
+    
+    try:
+        logger.info(f"Starting model server on {host}:{port} with model {model_path}")
+        start_server(model_path, host, port)
+        return SUCCESS
+        
+    except Exception as e:
+        logger.error(f"Error starting server: {str(e)}")
+        typer.echo(f"ERROR {ERROR_TRAINING_FAILED}: {str(e)}", err=True)
+        raise typer.Exit(code=ERROR_TRAINING_FAILED)
+
+@app.command()
+def tune(
+    data: str = typer.Argument(..., help="Path to the input CSV file"),
+    schema: str = typer.Argument(..., help="Path to the JSON schema file"),
+    model_type: str = typer.Option("random_forest", help="Type of model to tune"),
+    output: str = typer.Option("models", help="Directory for saving the model"),
+    config: Optional[str] = typer.Option(None, help="Path to optional configuration file"),
+    log_level: str = typer.Option("INFO", help="Logging level"),
+    iterations: int = typer.Option(10, help="Number of iterations for random search")
+):
+    """
+    Tune hyperparameters for a model.
+    """
+    # Reuse train command logic but with tuning flag
+    # For simplicity, we'll just pass a special flag to the pipeline
+    # In a real scenario, we might want a dedicated pipeline entry point
+    
+    # Set up logger
+    global logger
+    logger = setup_logger("synthai_cli", level=log_level)
+    
+    try:
+        pipeline_args = [
+            "pipeline.py",
+            "--data", data,
+            "--schema", schema,
+            "--model-type", model_type,
+            "--output", output,
+            "--log-level", log_level,
+            "--tune",  # Add tune flag
+            "--iterations", str(iterations) # Use iterations for n_iter in random search
+        ]
+        
+        if config:
+            pipeline_args.extend(["--config", config])
+            
+        # Save original sys.argv
+        original_argv = sys.argv.copy()
+        
+        try:
+            sys.argv = pipeline_args
+            logger.info("Starting hyperparameter tuning")
+            run_pipeline()
+            logger.info("Tuning completed successfully")
+            return SUCCESS
+        finally:
+            sys.argv = original_argv
+            
+    except Exception as e:
+        logger.error(f"Error during tuning: {str(e)}")
+        typer.echo(f"ERROR {ERROR_TRAINING_FAILED}: {str(e)}", err=True)
+        raise typer.Exit(code=ERROR_TRAINING_FAILED)
+
+@app.command()
+def explain(
+    model_path: str = typer.Argument(..., help="Path to the trained model file"),
+    data: str = typer.Argument(..., help="Path to the training data (for background)"),
+    output: str = typer.Option("explanations", help="Directory for saving explanation plots"),
+    log_level: str = typer.Option("INFO", help="Logging level")
+):
+    """
+    Generate explanations for a trained model.
+    """
+    # This would require loading the model and data, then running explainer
+    # For now, we'll just implement a basic version that calls a pipeline function
+    # But wait, the pipeline is designed for training.
+    # We might need to add a new mode to pipeline or just implement logic here.
+    
+    # Let's implement logic here for simplicity as we have the components
+    
+    global logger
+    logger = setup_logger("synthai_cli", level=log_level)
+    
+    try:
+        import pickle
+        import pandas as pd
+        from synthai.src.models.model_factory import BaseModel as SynthAIModel
+        
+        # Load model
+        logger.info(f"Loading model from {model_path}")
+        with open(model_path, 'rb') as f:
+            model_data = pickle.load(f)
+            
+        model = SynthAIModel()
+        if isinstance(model_data, dict) and 'model' in model_data:
+            model.model = model_data['model']
+        else:
+            model.model = model_data
+            
+        # Load data
+        logger.info(f"Loading data from {data}")
+        df = pd.read_csv(data)
+        
+        # We need to preprocess the data to match model expectations
+        # This is tricky without the original preprocessor.
+        # Ideally, we should load the preprocessor too.
+        
+        # Try to find preprocessor
+        model_dir = os.path.dirname(model_path)
+        import glob
+        preprocessor_files = glob.glob(os.path.join(model_dir, "preprocessor_*.pkl"))
+        
+        if not preprocessor_files:
+            logger.error("No preprocessor found. Cannot explain model without matching preprocessor.")
+            raise typer.Exit(code=ERROR_INVALID_ARGUMENT)
+            
+        preprocessor_path = sorted(preprocessor_files)[-1]
+        logger.info(f"Loading preprocessor from {preprocessor_path}")
+        
+        from synthai.src.data.preprocessor import DataPreprocessor
+        preprocessor = DataPreprocessor.load(preprocessor_path)
+        
+        # Preprocess data
+        X_train, X_test, _, _ = preprocessor.preprocess(df)
+        
+        # Explain
+        logger.info("Generating explanations...")
+        explainer = ModelExplainer(model, X_train, feature_names=preprocessor.schema["features"])
+        explainer.explain(X_test)
+        explainer.save_plots(output)
+        
+        logger.info(f"Explanations saved to {output}")
+        return SUCCESS
+        
+    except Exception as e:
+        logger.error(f"Error explaining model: {str(e)}")
+        typer.echo(f"ERROR {ERROR_TRAINING_FAILED}: {str(e)}", err=True)
+        raise typer.Exit(code=ERROR_TRAINING_FAILED)
 
 def print_error_codes():
     """

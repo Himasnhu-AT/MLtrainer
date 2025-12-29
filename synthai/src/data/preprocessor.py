@@ -10,6 +10,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, LabelEncoder
 from sklearn.preprocessing import OneHotEncoder
+from sklearn.impute import SimpleImputer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from tqdm import tqdm
 from synthai.src.utils.logger import get_logger, log_execution_time
@@ -218,23 +219,36 @@ class DataPreprocessor:
         Returns:
             Preprocessed feature as numpy array
         """
-        # Handle missing values
-        series = series.fillna(series.mean())
+        # Handle missing values using SimpleImputer
+        imputation = "mean" # Default
+        if isinstance(preprocessing, dict) and "imputation" in preprocessing:
+             imputation = preprocessing["imputation"]
+        elif preprocessing == "impute_median":
+             imputation = "median"
+        elif preprocessing == "impute_mode":
+             imputation = "most_frequent"
         
-        # Apply preprocessing if specified
-        if preprocessing == "scale":
+        # If preprocessing is just a string like "scale", we use default mean imputation
+        # If it's a dict, we extract details
+        
+        imputer = SimpleImputer(strategy=imputation if imputation in ["mean", "median", "most_frequent", "constant"] else "mean")
+        self.transformers[f"{name}_imputer"] = imputer
+        series_imputed = imputer.fit_transform(series.values.reshape(-1, 1))
+        
+        # Apply scaling if specified
+        if preprocessing == "scale" or (isinstance(preprocessing, dict) and preprocessing.get("scaling") == "standard"):
             scaler = StandardScaler()
             self.transformers[f"{name}_scaler"] = scaler
-            return scaler.fit_transform(series.values.reshape(-1, 1))
+            return scaler.fit_transform(series_imputed)
         
-        elif preprocessing == "minmax":
+        elif preprocessing == "minmax" or (isinstance(preprocessing, dict) and preprocessing.get("scaling") == "minmax"):
             scaler = MinMaxScaler()
             self.transformers[f"{name}_scaler"] = scaler
-            return scaler.fit_transform(series.values.reshape(-1, 1))
+            return scaler.fit_transform(series_imputed)
         
         else:
-            # Default: return as is
-            return series.values.reshape(-1, 1)
+            # Default: return imputed values
+            return series_imputed
     
     def _preprocess_categorical(self, series: pd.Series, name: str, preprocessing: Optional[str]) -> np.ndarray:
         """
@@ -249,25 +263,36 @@ class DataPreprocessor:
             Preprocessed feature as numpy array
         """
         # Handle missing values
-        series = series.fillna(series.mode()[0])
+        imputation = "most_frequent" # Default
+        if isinstance(preprocessing, dict) and "imputation" in preprocessing:
+             imputation = preprocessing["imputation"]
         
-        # Apply preprocessing if specified
-        if preprocessing == "one-hot":
+        imputer = SimpleImputer(strategy=imputation if imputation in ["most_frequent", "constant"] else "most_frequent")
+        self.transformers[f"{name}_imputer"] = imputer
+        # For categorical, we need to ensure we're working with strings/objects for some imputers
+        series_reshaped = series.values.reshape(-1, 1)
+        series_imputed = imputer.fit_transform(series_reshaped)
+        
+        # Apply encoding if specified
+        encoding = preprocessing if isinstance(preprocessing, str) else (preprocessing.get("encoding", "label") if isinstance(preprocessing, dict) else "label")
+        
+        if encoding == "one-hot":
             # Updated to use sparse_output instead of sparse
             encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
             self.transformers[f"{name}_encoder"] = encoder
-            return encoder.fit_transform(series.values.reshape(-1, 1))
+            return encoder.fit_transform(series_imputed)
         
-        elif preprocessing == "label":
+        elif encoding == "label":
             encoder = LabelEncoder()
             self.transformers[f"{name}_encoder"] = encoder
-            return encoder.fit_transform(series.values).reshape(-1, 1)
+            # LabelEncoder expects 1D array
+            return encoder.fit_transform(series_imputed.ravel()).reshape(-1, 1)
         
         else:
             # Default: label encoding
             encoder = LabelEncoder()
             self.transformers[f"{name}_encoder"] = encoder
-            return encoder.fit_transform(series.values).reshape(-1, 1)
+            return encoder.fit_transform(series_imputed.ravel()).reshape(-1, 1)
     
     def _preprocess_text(self, series: pd.Series, name: str, preprocessing: Optional[str]) -> np.ndarray:
         """
